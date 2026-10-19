@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  sku               String?  @unique
+  shortDescription  String
+  description       String
+  brand             String?
+  sellingPrice      Float
+  mrp               Float?
+  discountPercent   Float?
+  stockQuantity     Int      @default(0)
+  category          String
+  features          String?
+  specifications    String?
+  applications      String?
+  material          String?
+  dimensions        String?
+  weight            String?
+  packageDimensions String?
+  manufacturer      String?
+  countryOfOrigin   String?
+  certifications    String?
+  safetyInstructions String?
+  warranty          String?
+  shippingInfo      String?
+  faq               String?
+  isPublished       Boolean  @default(false)
+  isOutOfStock      Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  images            ProductImage[]
+  orderItems        OrderItem[]
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Banner {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  buttonText      String?
+  buttonUrl       String?
+  desktopImageUrl String?
+  mobileImageUrl  String?
+  order           Int      @default(0)
+  isEnabled       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Order {
+  id                  String    @id @default(cuid())
+  orderNumber         String    @unique
+  customerName        String
+  customerEmail       String?
+  customerPhone       String
+  address             String
+  city                String
+  state               String
+  pinCode             String
+  landmark            String?
+  orderNotes          String?
+  subtotal            Float
+  shippingCharge      Float     @default(0)
+  discount            Float     @default(0)
+  total               Float
+  paymentMethod       String
+  paymentStatus       String    @default("pending")
+  orderStatus         String    @default("pending")
+  razorpayOrderId     String?
+  razorpayPaymentId   String?
+  razorpaySignature   String?
+  shipmentId          String?
+  trackingNumber      String?
+  courierName         String?
+  estimatedDelivery   DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  items               OrderItem[]
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  productName String
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+}
+
+model WebsiteSettings {
+  id                    String   @id @default(cuid())
+  businessName          String   @default("MORJAL Enterprises")
+  logoUrl               String?
+  contactPhone          String?
+  contactEmail          String?
+  contactAddress        String?
+  whatsappNumber        String?
+  socialFacebook        String?
+  socialInstagram       String?
+  socialTwitter         String?
+  socialLinkedIn        String?
+  currency              String   @default("INR")
+  freeShippingThreshold Float?
+  codEnabled            Boolean  @default(true)
+  shippingPolicy        String?
+  returnPolicy          String?
+  cancellationPolicy    String?
+  privacyPolicy         String?
+  termsAndConditions    String?
+  refundPolicy          String?
+  announcementMessage   String?
+  ownerName             String?
+  ownerTitle            String?
+  ownerBio              String?
+  ownerImageUrl         String?
+  ownerStory            String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  videoUrl    String
+  thumbnailUrl String?
+  order       Int      @default(0)
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
