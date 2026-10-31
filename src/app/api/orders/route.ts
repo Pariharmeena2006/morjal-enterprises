@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createShiprocketOrder } from '@/lib/shiprocket'
 
 type RequestedItem = { productId?: string; id?: string; quantity?: number }
 
@@ -94,6 +95,19 @@ export async function POST(request: NextRequest) {
         select: { id: true, orderNumber: true, total: true },
       })
     })
+
+    // Create order in Shiprocket if enabled
+    const orderWithItems = await prisma.order.findUnique({
+      where: { id: result.id },
+      include: { items: true },
+    })
+
+    if (orderWithItems) {
+      createShiprocketOrder(orderWithItems).catch((error) => {
+        console.error('Failed to create Shiprocket order:', error)
+      })
+    }
+
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to place order.'

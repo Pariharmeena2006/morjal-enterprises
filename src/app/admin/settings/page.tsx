@@ -26,6 +26,10 @@ type SettingsForm = {
   ownerTitle: string
   ownerBio: string
   ownerStory: string
+  shiprocketEnabled: boolean
+  shiprocketEmail: string
+  shiprocketApiKey: string
+  shiprocketChannelId: string
 }
 
 const emptyForm: SettingsForm = {
@@ -33,6 +37,7 @@ const emptyForm: SettingsForm = {
   whatsappNumber: '8003351113', freeShippingThreshold: '1000', codEnabled: true, announcementMessage: '',
   ownerName: '', ownerTitle: '', ownerBio: '', ownerStory: '',
   socialFacebook: '', socialInstagram: '', socialTwitter: '', socialLinkedIn: '',
+  shiprocketEnabled: false, shiprocketEmail: '', shiprocketApiKey: '', shiprocketChannelId: '',
 }
 
 export default function AdminSettingsPage() {
@@ -57,6 +62,10 @@ export default function AdminSettingsPage() {
           ownerBio: data.ownerBio || '', ownerStory: data.ownerStory || '',
           socialFacebook: data.socialFacebook || '', socialInstagram: data.socialInstagram || '',
           socialTwitter: data.socialTwitter || '', socialLinkedIn: data.socialLinkedIn || '',
+          shiprocketEnabled: data.shiprocketEnabled ?? false,
+          shiprocketEmail: data.shiprocketEmail || '',
+          shiprocketApiKey: data.shiprocketApiKey || '',
+          shiprocketChannelId: data.shiprocketChannelId || '',
         })
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load settings'))
@@ -126,6 +135,18 @@ export default function AdminSettingsPage() {
                 <div><Label htmlFor="socialInstagram">Instagram URL</Label><Input id="socialInstagram" type="url" value={form.socialInstagram} onChange={(e) => update('socialInstagram', e.target.value)} /></div>
                 <div><Label htmlFor="socialTwitter">X / Twitter URL</Label><Input id="socialTwitter" type="url" value={form.socialTwitter} onChange={(e) => update('socialTwitter', e.target.value)} /></div>
                 <div><Label htmlFor="socialLinkedIn">LinkedIn URL</Label><Input id="socialLinkedIn" type="url" value={form.socialLinkedIn} onChange={(e) => update('socialLinkedIn', e.target.value)} /></div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Shiprocket Integration</CardTitle></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2 flex items-center gap-3">
+                  <input id="shiprocketEnabled" type="checkbox" checked={form.shiprocketEnabled} onChange={(e) => update('shiprocketEnabled', e.target.checked)} className="h-4 w-4 accent-[#073B82]" />
+                  <Label htmlFor="shiprocketEnabled">Enable Shiprocket for order shipping</Label>
+                </div>
+                <div><Label htmlFor="shiprocketEmail">Shiprocket Email</Label><Input id="shiprocketEmail" type="email" value={form.shiprocketEmail} onChange={(e) => update('shiprocketEmail', e.target.value)} placeholder="your@email.com" /></div>
+                <div><Label htmlFor="shiprocketApiKey">Shiprocket API Key / Password</Label><Input id="shiprocketApiKey" type="password" value={form.shiprocketApiKey} onChange={(e) => update('shiprocketApiKey', e.target.value)} placeholder="Your Shiprocket password" /></div>
+                <div className="md:col-span-2"><Label htmlFor="shiprocketChannelId">Channel ID (Optional)</Label><Input id="shiprocketChannelId" value={form.shiprocketChannelId} onChange={(e) => update('shiprocketChannelId', e.target.value)} placeholder="Your Shiprocket channel ID" /></div>
               </CardContent>
             </Card>
             <div className="flex justify-end"><Button type="submit" disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save settings'}</Button></div>

@@ -43,6 +43,7 @@ export default function NewProductPage() {
     warranty: '',
     shippingInfo: '',
     faq: '',
+    videoUrl: '',
     isPublished: true,
   })
 
@@ -423,6 +424,19 @@ export default function NewProductPage() {
                     onChange={handleInputChange}
                     rows={3}
                   />
+                </div>
+                <div>
+                  <Label htmlFor="videoUrl">Product Video URL</Label>
+                  <Input
+                    id="videoUrl"
+                    name="videoUrl"
+                    value={formData.videoUrl}
+                    onChange={handleInputChange}
+                    placeholder="e.g., https://www.youtube.com/embed/VIDEO_ID"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use YouTube embed URL (e.g., https://www.youtube.com/embed/VIDEO_ID)
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -43,6 +43,7 @@ model Product {
   warranty          String?
   shippingInfo      String?
   faq               String?
+  videoUrl          String?
   isPublished       Boolean  @default(false)
   isOutOfStock      Boolean  @default(false)
   createdAt         DateTime @default(now())
@@ -145,6 +146,10 @@ model WebsiteSettings {
   ownerBio              String?
   ownerImageUrl         String?
   ownerStory            String?
+  shiprocketEnabled     Boolean  @default(false)
+  shiprocketEmail       String?
+  shiprocketApiKey      String?
+  shiprocketChannelId   String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }

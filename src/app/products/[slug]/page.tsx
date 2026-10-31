@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft } from 'lucide-react'
+import { ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Play, Star, Video } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -33,6 +33,7 @@ interface Product {
   warranty?: string
   faq?: string
   shippingInfo?: string
+  videoUrl?: string
 }
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
@@ -154,7 +155,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           </Link>
         </motion.div>
 
-        <div className="mb-10 grid min-w-0 grid-cols-1 gap-6 sm:mb-16 sm:gap-8 lg:grid-cols-2 lg:gap-12">
+        <div className="mb-8 grid min-w-0 grid-cols-1 gap-4 sm:mb-12 sm:gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Product Images */}
           <motion.div variants={itemVariants}>
             <div className="bg-background-light rounded-2xl overflow-hidden mb-4">
@@ -202,26 +203,26 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
           {/* Product Info */}
           <motion.div variants={itemVariants}>
-            <h1 className="mb-3 text-2xl font-bold text-navy [overflow-wrap:anywhere] sm:text-3xl lg:text-4xl">{product.name}</h1>
+            <h1 className="mb-2 text-xl font-bold text-navy [overflow-wrap:anywhere] sm:text-2xl lg:text-3xl">{product.name}</h1>
             {product.brand && (
-              <p className="text-text mb-2">Brand: {product.brand}</p>
+              <p className="text-text mb-1 text-sm sm:text-base">Brand: {product.brand}</p>
             )}
             {product.sku && (
-              <p className="text-sm text-gray-500 mb-4">SKU: {product.sku}</p>
+              <p className="text-xs text-gray-500 mb-3 sm:text-sm">SKU: {product.sku}</p>
             )}
 
             {/* Price */}
-            <div className="mb-6">
-              <span className="text-3xl font-bold text-navy sm:text-4xl">
+            <div className="mb-4 sm:mb-6">
+              <span className="text-2xl font-bold text-navy sm:text-3xl lg:text-4xl">
                 {formatPrice(product.sellingPrice)}
               </span>
               {product.mrp && product.mrp > product.sellingPrice && (
                 <>
-                  <span className="text-xl text-gray-400 line-through ml-3">
+                  <span className="text-lg text-gray-400 line-through ml-2 sm:text-xl sm:ml-3">
                     {formatPrice(product.mrp)}
                   </span>
                   {discount > 0 && (
-                    <span className="ml-3 bg-green-600 text-white text-sm px-3 py-1 rounded-full font-semibold">
+                    <span className="ml-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold sm:text-sm sm:px-3 sm:py-1 sm:ml-3">
                       {discount}% OFF
                     </span>
                   )}
@@ -230,7 +231,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             </div>
 
             {/* Stock Status */}
-            <p className="mb-6">
+            <p className="mb-4 text-sm sm:mb-6 sm:text-base">
               {product.isOutOfStock ? (
                 <span className="text-red-600 font-semibold">Out of Stock</span>
               ) : product.stockQuantity <= 5 ? (
@@ -241,15 +242,15 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             </p>
 
             {/* Short Description */}
-            <p className="text-text mb-8 text-lg">{product.shortDescription}</p>
+            <p className="text-text mb-6 text-sm sm:mb-8 sm:text-base sm:text-lg">{product.shortDescription}</p>
 
             {/* Quantity Selector */}
-            <div className="flex items-center space-x-4 mb-8">
-              <span className="font-semibold text-navy">Quantity:</span>
+            <div className="flex items-center space-x-3 mb-6 sm:space-x-4 sm:mb-8">
+              <span className="font-semibold text-navy text-sm sm:text-base">Quantity:</span>
                 <div className="flex items-center rounded-xl border border-gray-300">
-                <button 
+                <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-4 py-3 hover:bg-gray-100 transition-colors"
+                  className="px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-100 transition-colors"
                   disabled={quantity <= 1}
                 >
                   <Minus className="h-4 w-4" />
@@ -260,11 +261,11 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                   onChange={(e) => setQuantity(Math.max(1, Math.min(10, product.stockQuantity, parseInt(e.target.value) || 1)))}
                   min="1"
                   max={product.stockQuantity}
-                  className="w-16 text-center border-x border-gray-300 focus:outline-none py-3"
+                  className="w-14 sm:w-16 text-center border-x border-gray-300 focus:outline-none py-2 sm:py-3 text-sm sm:text-base"
                 />
-                <button 
+                <button
                   onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
-                  className="px-4 py-3 hover:bg-gray-100 transition-colors"
+                  className="px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-100 transition-colors"
                   disabled={quantity >= product.stockQuantity}
                 >
                   <Plus className="h-4 w-4" />
@@ -273,128 +274,185 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:gap-4 sm:mb-6">
               <Button
                 size="lg"
                 onClick={addToCart}
-                className="flex-1 bg-gold text-navy hover:bg-gold/90 py-4 rounded-xl font-semibold"
+                className="flex-1 bg-gold text-navy hover:bg-gold/90 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base"
                 disabled={product.isOutOfStock}
               >
-                <ShoppingCart className="h-5 w-5 mr-2" />
+                <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Add to Cart
               </Button>
               <Button
                 size="lg"
                 onClick={buyNow}
-                className="flex-1 bg-navy text-white hover:bg-navy-deep py-4 rounded-xl font-semibold"
+                className="flex-1 bg-navy text-white hover:bg-navy-deep py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base"
                 disabled={product.isOutOfStock}
               >
                 Buy Now
               </Button>
             </div>
-            {cartNotice && <p role="status" className="mb-4 text-sm font-medium text-green-700">{cartNotice}</p>}
+            {cartNotice && <p role="status" className="mb-3 text-xs sm:text-sm font-medium text-green-700">{cartNotice}</p>}
 
             {/* WhatsApp Enquiry */}
             <a href={`https://wa.me/?text=${encodeURIComponent(`Hello, I am interested in ${product.name} (/products/${product.slug})`)}`} target="_blank" rel="noreferrer" className="block">
-            <Button type="button" variant="outline" className="w-full text-green-600 border-green-600 hover:bg-green-50 py-4 rounded-xl">
-              <MessageCircle className="h-5 w-5 mr-2" />
+            <Button type="button" variant="outline" className="w-full text-green-600 border-green-600 hover:bg-green-50 py-3 sm:py-4 rounded-xl text-sm sm:text-base">
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Enquire on WhatsApp
             </Button>
             </a>
 
             {/* Shipping Info */}
             {product.shippingInfo && (
-              <div className="mt-6 bg-background-light p-6 rounded-2xl">
-                <h3 className="font-semibold text-navy mb-2">Shipping Information</h3>
-                <p className="text-sm text-text">{product.shippingInfo}</p>
+              <div className="mt-4 sm:mt-6 bg-background-light p-4 sm:p-6 rounded-2xl">
+                <h3 className="font-semibold text-navy mb-2 text-sm sm:text-base">Shipping Information</h3>
+                <p className="text-xs sm:text-sm text-text">{product.shippingInfo}</p>
               </div>
             )}
           </motion.div>
         </div>
 
         {/* Product Details */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
-          className="mb-10 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:mb-16 sm:p-8"
+          className="mb-8 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:mb-12 sm:p-6 lg:p-8"
         >
-          <h2 className="text-2xl font-bold text-navy mb-6">Product Description</h2>
-          <div className="prose max-w-none text-text">
+          <h2 className="text-xl font-bold text-navy mb-4 sm:text-2xl sm:mb-6">Product Description</h2>
+          <div className="prose max-w-none text-text text-sm sm:text-base">
             <p>{product.description}</p>
           </div>
 
           {product.features && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Features</h3>
-              <p className="text-text whitespace-pre-line">{product.features}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Features</h3>
+              <p className="text-text whitespace-pre-line text-sm sm:text-base">{product.features}</p>
             </div>
           )}
 
           {product.specifications && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Specifications</h3>
-              <p className="text-text whitespace-pre-line">{product.specifications}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Specifications</h3>
+              <p className="text-text whitespace-pre-line text-sm sm:text-base">{product.specifications}</p>
             </div>
           )}
 
           {product.applications && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Applications</h3>
-              <p className="text-text whitespace-pre-line">{product.applications}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Applications</h3>
+              <p className="text-text whitespace-pre-line text-sm sm:text-base">{product.applications}</p>
             </div>
           )}
 
           {product.material && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Material</h3>
-              <p className="text-text">{product.material}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Material</h3>
+              <p className="text-text text-sm sm:text-base">{product.material}</p>
             </div>
           )}
 
           {product.dimensions && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Dimensions</h3>
-              <p className="text-text">{product.dimensions}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Dimensions</h3>
+              <p className="text-text text-sm sm:text-base">{product.dimensions}</p>
             </div>
           )}
 
           {product.weight && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Weight</h3>
-              <p className="text-text">{product.weight}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Weight</h3>
+              <p className="text-text text-sm sm:text-base">{product.weight}</p>
             </div>
           )}
 
           {product.safetyInstructions && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Safety Instructions</h3>
-              <p className="text-text whitespace-pre-line">{product.safetyInstructions}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Safety Instructions</h3>
+              <p className="text-text whitespace-pre-line text-sm sm:text-base">{product.safetyInstructions}</p>
             </div>
           )}
 
           {product.warranty && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Warranty</h3>
-              <p className="text-text">{product.warranty}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Warranty</h3>
+              <p className="text-text text-sm sm:text-base">{product.warranty}</p>
             </div>
           )}
 
           {product.faq && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold text-navy mb-3">Frequently Asked Questions</h3>
-              <p className="text-text whitespace-pre-line">{product.faq}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Frequently Asked Questions</h3>
+              <p className="text-text whitespace-pre-line text-sm sm:text-base">{product.faq}</p>
             </div>
           )}
+
+          {product.videoUrl && (
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-lg font-semibold text-navy mb-2 sm:text-xl sm:mb-3">Product Video</h3>
+              <div className="relative aspect-video bg-gray-900 rounded-xl overflow-hidden">
+                <iframe
+                  src={product.videoUrl}
+                  className="w-full h-full"
+                  allowFullScreen
+                  title="Product Video"
+                />
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Reviews Section */}
+        <motion.div 
+          variants={itemVariants}
+          className="mb-10 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:mb-16 sm:p-8"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-navy sm:text-2xl">Customer Reviews</h2>
+            <Button variant="outline" className="text-navy border-navy hover:bg-navy hover:text-white text-sm sm:text-base">
+              <Star className="h-4 w-4 mr-2" />
+              Write a Review
+            </Button>
+          </div>
+
+          {/* Text Reviews */}
+          <div>
+            <div className="space-y-4 sm:space-y-6">
+              {[
+                { name: 'Rahul Sharma', rating: 5, text: 'Excellent product quality. Very satisfied with the purchase. Highly recommended for industrial use.', date: '2 days ago' },
+                { name: 'Priya Singh', rating: 4, text: 'Good product overall. Delivery was fast and packaging was secure. Would buy again.', date: '1 week ago' },
+                { name: 'Amit Patel', rating: 5, text: 'Perfect for our needs. The safety features are exactly what we were looking for.', date: '2 weeks ago' },
+              ].map((review, index) => (
+                <div key={index} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                    <div>
+                      <p className="font-semibold text-navy text-sm sm:text-base">{review.name}</p>
+                      <div className="flex items-center mt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star} 
+                            className={`h-3 w-3 sm:h-4 sm:w-4 ${star <= review.rating ? 'text-gold fill-gold' : 'text-gray-300'}`} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-xs sm:text-sm text-gray-500">{review.date}</span>
+                  </div>
+                  <p className="text-text text-sm sm:text-base">{review.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <motion.div variants={itemVariants}>
-            <h2 className="text-2xl font-bold text-navy mb-6">Related Products</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+            <h2 className="text-xl font-bold text-navy mb-4 sm:text-2xl sm:mb-6">Related Products</h2>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
               {relatedProducts.map((relatedProduct) => (
                 <Link key={relatedProduct.id} href={`/products/${relatedProduct.slug}`}>
-                  <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer overflow-hidden border border-gray-100">
-                    <div className="relative h-48 bg-background-light">
+                  <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer overflow-hidden border border-gray-100">
+                    <div className="relative h-32 sm:h-40 md:h-48 bg-background-light">
                       {relatedProduct.images[0] ? (
                         <Image
                           src={relatedProduct.images[0].url}
@@ -403,16 +461,16 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs sm:text-sm">
                           No Image
                         </div>
                       )}
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-navy line-clamp-2 mb-2">
+                    <div className="p-3 sm:p-4">
+                      <h3 className="font-semibold text-navy line-clamp-2 mb-2 text-xs sm:text-sm md:text-base">
                         {relatedProduct.name}
                       </h3>
-                      <p className="text-lg font-bold text-navy">
+                      <p className="text-base sm:text-lg font-bold text-navy">
                         {formatPrice(relatedProduct.sellingPrice)}
                       </p>
                     </div>

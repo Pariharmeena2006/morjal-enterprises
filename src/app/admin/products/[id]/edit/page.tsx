@@ -44,6 +44,7 @@ export default function EditProductPage() {
     warranty: '',
     shippingInfo: '',
     faq: '',
+    videoUrl: '',
     isPublished: true,
   })
 
@@ -81,6 +82,7 @@ export default function EditProductPage() {
           warranty: product.warranty || '',
           shippingInfo: product.shippingInfo || '',
           faq: product.faq || '',
+          videoUrl: product.videoUrl || '',
           isPublished: product.isPublished ?? true,
         })
         setImages(product.images || [])
@@ -341,6 +343,152 @@ export default function EditProductPage() {
                     onChange={handleInputChange}
                     rows={3}
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Physical Properties */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Physical Properties</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="material">Material</Label>
+                  <Input
+                    id="material"
+                    name="material"
+                    value={formData.material}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="dimensions">Dimensions</Label>
+                  <Input
+                    id="dimensions"
+                    name="dimensions"
+                    value={formData.dimensions}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 10cm x 5cm x 2cm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="weight">Weight</Label>
+                  <Input
+                    id="weight"
+                    name="weight"
+                    value={formData.weight}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 500g"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="packageDimensions">Package Dimensions</Label>
+                  <Input
+                    id="packageDimensions"
+                    name="packageDimensions"
+                    value={formData.packageDimensions}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Manufacturer Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Manufacturer Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="manufacturer">Manufacturer</Label>
+                  <Input
+                    id="manufacturer"
+                    name="manufacturer"
+                    value={formData.manufacturer}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="countryOfOrigin">Country of Origin</Label>
+                  <Input
+                    id="countryOfOrigin"
+                    name="countryOfOrigin"
+                    value={formData.countryOfOrigin}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="certifications">Certifications</Label>
+                  <Textarea
+                    id="certifications"
+                    name="certifications"
+                    value={formData.certifications}
+                    onChange={handleInputChange}
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Safety and Warranty */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Safety and Warranty</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="safetyInstructions">Safety Instructions</Label>
+                  <Textarea
+                    id="safetyInstructions"
+                    name="safetyInstructions"
+                    value={formData.safetyInstructions}
+                    onChange={handleInputChange}
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="warranty">Warranty Information</Label>
+                  <Textarea
+                    id="warranty"
+                    name="warranty"
+                    value={formData.warranty}
+                    onChange={handleInputChange}
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="shippingInfo">Shipping Information</Label>
+                  <Textarea
+                    id="shippingInfo"
+                    name="shippingInfo"
+                    value={formData.shippingInfo}
+                    onChange={handleInputChange}
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="faq">FAQ</Label>
+                  <Textarea
+                    id="faq"
+                    name="faq"
+                    value={formData.faq}
+                    onChange={handleInputChange}
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="videoUrl">Product Video URL</Label>
+                  <Input
+                    id="videoUrl"
+                    name="videoUrl"
+                    value={formData.videoUrl}
+                    onChange={handleInputChange}
+                    placeholder="e.g., https://www.youtube.com/embed/VIDEO_ID"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use YouTube embed URL (e.g., https://www.youtube.com/embed/VIDEO_ID)
+                  </p>
                 </div>
               </CardContent>
             </Card>
