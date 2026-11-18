@@ -26,6 +26,8 @@ type SettingsForm = {
   ownerTitle: string
   ownerBio: string
   ownerStory: string
+  ownerImageUrl: string
+  ownerAchievements: string
   shiprocketEnabled: boolean
   shiprocketEmail: string
   shiprocketApiKey: string
@@ -35,7 +37,7 @@ type SettingsForm = {
 const emptyForm: SettingsForm = {
   businessName: 'MORJAL Enterprises', contactPhone: '9694142555', contactEmail: '', contactAddress: '',
   whatsappNumber: '8003351113', freeShippingThreshold: '1000', codEnabled: true, announcementMessage: '',
-  ownerName: '', ownerTitle: '', ownerBio: '', ownerStory: '',
+  ownerName: '', ownerTitle: '', ownerBio: '', ownerStory: '', ownerImageUrl: '', ownerAchievements: '',
   socialFacebook: '', socialInstagram: '', socialTwitter: '', socialLinkedIn: '',
   shiprocketEnabled: false, shiprocketEmail: '', shiprocketApiKey: '', shiprocketChannelId: '',
 }
@@ -60,6 +62,7 @@ export default function AdminSettingsPage() {
           codEnabled: data.codEnabled ?? true, announcementMessage: data.announcementMessage || '',
           ownerName: data.ownerName || '', ownerTitle: data.ownerTitle || '',
           ownerBio: data.ownerBio || '', ownerStory: data.ownerStory || '',
+          ownerImageUrl: data.ownerImageUrl || '', ownerAchievements: data.ownerAchievements || '',
           socialFacebook: data.socialFacebook || '', socialInstagram: data.socialInstagram || '',
           socialTwitter: data.socialTwitter || '', socialLinkedIn: data.socialLinkedIn || '',
           shiprocketEnabled: data.shiprocketEnabled ?? false,
@@ -124,8 +127,10 @@ export default function AdminSettingsPage() {
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div><Label htmlFor="ownerName">Name</Label><Input id="ownerName" value={form.ownerName} onChange={(e) => update('ownerName', e.target.value)} /></div>
                 <div><Label htmlFor="ownerTitle">Title</Label><Input id="ownerTitle" value={form.ownerTitle} onChange={(e) => update('ownerTitle', e.target.value)} /></div>
+                <div className="md:col-span-2"><Label htmlFor="ownerImageUrl">Photo URL</Label><Input id="ownerImageUrl" value={form.ownerImageUrl} onChange={(e) => update('ownerImageUrl', e.target.value)} placeholder="https://example.com/photo.jpg" /></div>
                 <div className="md:col-span-2"><Label htmlFor="ownerBio">Short bio</Label><Textarea id="ownerBio" value={form.ownerBio} onChange={(e) => update('ownerBio', e.target.value)} rows={3} /></div>
                 <div className="md:col-span-2"><Label htmlFor="ownerStory">Company story</Label><Textarea id="ownerStory" value={form.ownerStory} onChange={(e) => update('ownerStory', e.target.value)} rows={5} /></div>
+                <div className="md:col-span-2"><Label htmlFor="ownerAchievements">Achievements (one per line)</Label><Textarea id="ownerAchievements" value={form.ownerAchievements} onChange={(e) => update('ownerAchievements', e.target.value)} rows={4} placeholder="Award 1&#10;Award 2&#10;Award 3" /></div>
               </CardContent>
             </Card>
             <Card>

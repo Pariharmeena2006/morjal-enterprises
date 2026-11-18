@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 const editableFields = [
   'businessName', 'contactPhone', 'contactEmail', 'contactAddress', 'whatsappNumber',
   'socialFacebook', 'socialInstagram', 'socialTwitter', 'socialLinkedIn',
-  'ownerName', 'ownerTitle', 'ownerBio', 'ownerImageUrl', 'ownerStory',
+  'ownerName', 'ownerTitle', 'ownerBio', 'ownerImageUrl', 'ownerStory', 'ownerAchievements',
   'announcementMessage', 'shippingPolicy', 'returnPolicy', 'cancellationPolicy',
   'privacyPolicy', 'termsAndConditions', 'refundPolicy',
 ] as const

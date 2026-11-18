@@ -146,6 +146,7 @@ model WebsiteSettings {
   ownerBio              String?
   ownerImageUrl         String?
   ownerStory            String?
+  ownerAchievements     String?
   shiprocketEnabled     Boolean  @default(false)
   shiprocketEmail       String?
   shiprocketApiKey      String?
@@ -172,6 +173,20 @@ model Video {
   thumbnailUrl String?
   order       Int      @default(0)
   isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model News {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String?
+  content     String
+  imageUrl    String?
+  authorName  String?
+  authorTitle String?
+  published   Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

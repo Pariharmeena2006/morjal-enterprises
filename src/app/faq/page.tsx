@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { HelpCircle } from 'lucide-react'
+import { HelpCircle, MessageCircle } from 'lucide-react'
 
 const faqs = [
   {
@@ -73,11 +73,11 @@ export default function FAQPage() {
               Can&apos;t find the answer you&apos;re looking for? Please reach out to our customer support team.
             </p>
             <div className="flex justify-center space-x-4">
-              <a href="tel:+91XXXXXXXXXX" className="inline-flex items-center px-6 py-3 bg-gold text-white rounded-md hover:bg-gold-dark transition-colors">
+              <a href="tel:+919694142555" className="inline-flex items-center px-6 py-3 bg-gold text-white rounded-md hover:bg-gold-dark transition-colors">
                 Call Us
               </a>
-              <a href="mailto:info@morjalenterprises.com" className="inline-flex items-center px-6 py-3 bg-white text-navy rounded-md hover:bg-gray-100 transition-colors">
-                Email Us
+              <a href="https://wa.me/919694142555" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-white px-6 py-3 text-navy transition-colors hover:bg-gray-100">
+                <MessageCircle className="h-4 w-4" /> WhatsApp Us
               </a>
             </div>
           </CardContent>

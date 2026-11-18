@@ -40,6 +40,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [cartNotice, setCartNotice] = useState('')
@@ -159,7 +160,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           {/* Product Images */}
           <motion.div variants={itemVariants}>
             <div className="bg-background-light rounded-2xl overflow-hidden mb-4">
-              {product.images[selectedImage] ? (
+              {product.images[selectedImage] && !failedImages.has(product.images[selectedImage].url) ? (
                 <div className="relative h-[min(78vw,390px)] min-h-64 sm:h-96 lg:h-[500px]">
                   <Image
                     src={product.images[selectedImage].url}
@@ -167,6 +168,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                     fill
                     className="object-cover"
                     priority
+                    onError={() => setFailedImages((current) => new Set(current).add(product.images[selectedImage].url))}
                   />
                 </div>
               ) : (
@@ -187,13 +189,20 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                       selectedImage === index ? 'ring-2 ring-gold' : 'hover:ring-2 hover:ring-navy'
                     }`}
                   >
-                    <div className="relative h-16 sm:h-20">
-                      <Image
-                        src={image.url}
-                        alt={image.alt || `${product.name} ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="relative h-16 bg-background-light sm:h-20">
+                      {failedImages.has(image.url) ? (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-navy to-navy-deep text-gold">
+                          <ShoppingCart className="h-5 w-5 opacity-70" />
+                        </div>
+                      ) : (
+                        <Image
+                          src={image.url}
+                          alt={image.alt || `${product.name} ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          onError={() => setFailedImages((current) => new Set(current).add(image.url))}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -242,7 +251,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             </p>
 
             {/* Short Description */}
-            <p className="text-text mb-6 text-sm sm:mb-8 sm:text-base sm:text-lg">{product.shortDescription}</p>
+            <p className="text-text mb-6 text-sm sm:mb-8 sm:text-lg">{product.shortDescription}</p>
 
             {/* Quantity Selector */}
             <div className="flex items-center space-x-3 mb-6 sm:space-x-4 sm:mb-8">
@@ -296,7 +305,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             {cartNotice && <p role="status" className="mb-3 text-xs sm:text-sm font-medium text-green-700">{cartNotice}</p>}
 
             {/* WhatsApp Enquiry */}
-            <a href={`https://wa.me/?text=${encodeURIComponent(`Hello, I am interested in ${product.name} (/products/${product.slug})`)}`} target="_blank" rel="noreferrer" className="block">
+            <a href={`https://wa.me/919694142555?text=${encodeURIComponent(`Hello, I am interested in ${product.name}. Please share more details. Product: /products/${product.slug}`)}`} target="_blank" rel="noreferrer" className="block">
             <Button type="button" variant="outline" className="w-full text-green-600 border-green-600 hover:bg-green-50 py-3 sm:py-4 rounded-xl text-sm sm:text-base">
               <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Enquire on WhatsApp
