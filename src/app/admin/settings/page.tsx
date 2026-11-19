@@ -32,14 +32,23 @@ type SettingsForm = {
   shiprocketEmail: string
   shiprocketApiKey: string
   shiprocketChannelId: string
+  shiprocketApiKeyConfigured: boolean
+  homeHeroFirstLine: string
+  homeHeroSecondLine: string
+  homeHeroDescription: string
+  homeFeaturedTitle: string
+  homeFeaturedDescription: string
+  homeFeaturedVisible: boolean
+  homeVideosVisible: boolean
 }
 
 const emptyForm: SettingsForm = {
-  businessName: 'MORJAL Enterprises', contactPhone: '9694142555', contactEmail: '', contactAddress: '',
-  whatsappNumber: '8003351113', freeShippingThreshold: '1000', codEnabled: true, announcementMessage: '',
+  businessName: 'MORJAL Enterprises', contactPhone: '', contactEmail: '', contactAddress: '',
+  whatsappNumber: '', freeShippingThreshold: '1000', codEnabled: true, announcementMessage: '',
   ownerName: '', ownerTitle: '', ownerBio: '', ownerStory: '', ownerImageUrl: '', ownerAchievements: '',
   socialFacebook: '', socialInstagram: '', socialTwitter: '', socialLinkedIn: '',
-  shiprocketEnabled: false, shiprocketEmail: '', shiprocketApiKey: '', shiprocketChannelId: '',
+  shiprocketEnabled: false, shiprocketEmail: '', shiprocketApiKey: '', shiprocketChannelId: '', shiprocketApiKeyConfigured: false,
+  homeHeroFirstLine: '', homeHeroSecondLine: '', homeHeroDescription: '', homeFeaturedTitle: '', homeFeaturedDescription: '', homeFeaturedVisible: true, homeVideosVisible: true,
 }
 
 export default function AdminSettingsPage() {
@@ -56,8 +65,8 @@ export default function AdminSettingsPage() {
         if (!response.ok) throw new Error(data.error || 'Unable to load settings')
         setForm({
           businessName: data.businessName || 'MORJAL Enterprises',
-          contactPhone: '9694142555', contactEmail: data.contactEmail || '',
-          contactAddress: data.contactAddress || '', whatsappNumber: '8003351113',
+          contactPhone: data.contactPhone || '', contactEmail: data.contactEmail || '',
+          contactAddress: data.contactAddress || '', whatsappNumber: data.whatsappNumber || '',
           freeShippingThreshold: String(data.freeShippingThreshold ?? 1000),
           codEnabled: data.codEnabled ?? true, announcementMessage: data.announcementMessage || '',
           ownerName: data.ownerName || '', ownerTitle: data.ownerTitle || '',
@@ -67,8 +76,16 @@ export default function AdminSettingsPage() {
           socialTwitter: data.socialTwitter || '', socialLinkedIn: data.socialLinkedIn || '',
           shiprocketEnabled: data.shiprocketEnabled ?? false,
           shiprocketEmail: data.shiprocketEmail || '',
-          shiprocketApiKey: data.shiprocketApiKey || '',
+          shiprocketApiKey: '',
           shiprocketChannelId: data.shiprocketChannelId || '',
+          shiprocketApiKeyConfigured: data.shiprocketApiKeyConfigured ?? false,
+          homeHeroFirstLine: data.homeHeroFirstLine || '',
+          homeHeroSecondLine: data.homeHeroSecondLine || '',
+          homeHeroDescription: data.homeHeroDescription || '',
+          homeFeaturedTitle: data.homeFeaturedTitle || '',
+          homeFeaturedDescription: data.homeFeaturedDescription || '',
+          homeFeaturedVisible: data.homeFeaturedVisible ?? true,
+          homeVideosVisible: data.homeVideosVisible ?? true,
         })
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load settings'))
@@ -89,6 +106,7 @@ export default function AdminSettingsPage() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to save settings')
+      setForm((current) => ({ ...current, shiprocketApiKey: '', shiprocketApiKeyConfigured: data.shiprocketApiKeyConfigured ?? current.shiprocketApiKeyConfigured }))
       setNotice('Store settings saved successfully.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save settings')
@@ -108,6 +126,19 @@ export default function AdminSettingsPage() {
         {notice && <div role="status" className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-green-700">{notice}</div>}
         {loading ? <p className="py-12 text-center text-navy">Loading settings…</p> : (
           <form onSubmit={save} className="space-y-6">
+            <Card>
+              <CardHeader id="homepage"><CardTitle>Homepage content</CardTitle></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div><Label htmlFor="homeHeroFirstLine">Hero first line</Label><Input id="homeHeroFirstLine" value={form.homeHeroFirstLine} onChange={(e) => update('homeHeroFirstLine', e.target.value)} placeholder="The right safety gear." /></div>
+                <div><Label htmlFor="homeHeroSecondLine">Hero highlighted line</Label><Input id="homeHeroSecondLine" value={form.homeHeroSecondLine} onChange={(e) => update('homeHeroSecondLine', e.target.value)} placeholder="Ready for work." /></div>
+                <div className="md:col-span-2"><Label htmlFor="homeHeroDescription">Hero description</Label><Textarea id="homeHeroDescription" value={form.homeHeroDescription} onChange={(e) => update('homeHeroDescription', e.target.value)} rows={3} /></div>
+                <div><Label htmlFor="homeFeaturedTitle">Featured products title</Label><Input id="homeFeaturedTitle" value={form.homeFeaturedTitle} onChange={(e) => update('homeFeaturedTitle', e.target.value)} placeholder="Popular picks" /></div>
+                <div className="md:col-span-2"><Label htmlFor="homeFeaturedDescription">Featured products description</Label><Textarea id="homeFeaturedDescription" value={form.homeFeaturedDescription} onChange={(e) => update('homeFeaturedDescription', e.target.value)} rows={2} /></div>
+                <label className="flex items-center gap-3"><input type="checkbox" checked={form.homeFeaturedVisible} onChange={(e) => update('homeFeaturedVisible', e.target.checked)} className="h-4 w-4 accent-[#073B82]" /><span className="text-sm font-medium text-navy">Show featured products section</span></label>
+                <label className="flex items-center gap-3"><input type="checkbox" checked={form.homeVideosVisible} onChange={(e) => update('homeVideosVisible', e.target.checked)} className="h-4 w-4 accent-[#073B82]" /><span className="text-sm font-medium text-navy">Show homepage videos section</span></label>
+                <p className="text-xs text-gray-500 md:col-span-2">Leave copy fields blank to keep the current MORJAL storefront wording. Banner images remain managed under Homepage Banners.</p>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Store className="h-5 w-5" />Store & contact</CardTitle></CardHeader>
               <CardContent className="grid min-w-0 gap-4 sm:grid-cols-2">
@@ -150,7 +181,7 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="shiprocketEnabled">Enable Shiprocket for order shipping</Label>
                 </div>
                 <div><Label htmlFor="shiprocketEmail">Shiprocket Email</Label><Input id="shiprocketEmail" type="email" value={form.shiprocketEmail} onChange={(e) => update('shiprocketEmail', e.target.value)} placeholder="your@email.com" /></div>
-                <div><Label htmlFor="shiprocketApiKey">Shiprocket API Key / Password</Label><Input id="shiprocketApiKey" type="password" value={form.shiprocketApiKey} onChange={(e) => update('shiprocketApiKey', e.target.value)} placeholder="Your Shiprocket password" /></div>
+                <div><Label htmlFor="shiprocketApiKey">Shiprocket API password</Label><Input id="shiprocketApiKey" type="password" autoComplete="new-password" value={form.shiprocketApiKey} onChange={(e) => update('shiprocketApiKey', e.target.value)} placeholder={form.shiprocketApiKeyConfigured ? 'Saved securely — leave blank to keep' : 'Enter Shiprocket password'} /><p className="mt-1 text-xs text-gray-500">{form.shiprocketApiKeyConfigured ? 'A credential is saved; it is never sent back to this page.' : 'Required to enable Shiprocket.'}</p></div>
                 <div className="md:col-span-2"><Label htmlFor="shiprocketChannelId">Channel ID (Optional)</Label><Input id="shiprocketChannelId" value={form.shiprocketChannelId} onChange={(e) => update('shiprocketChannelId', e.target.value)} placeholder="Your Shiprocket channel ID" /></div>
               </CardContent>
             </Card>

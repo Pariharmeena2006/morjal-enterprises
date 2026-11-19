@@ -55,7 +55,6 @@ export async function createShiprocketOrder(orderData: any) {
     const settings = await prisma.websiteSettings.findFirst()
     
     if (!settings?.shiprocketEnabled || !settings.shiprocketEmail || !settings.shiprocketApiKey) {
-      console.log('Shiprocket not configured')
       return null
     }
 
@@ -140,15 +139,14 @@ export async function createShiprocketOrder(orderData: any) {
     })
 
     if (!orderResponse.ok) {
-      const errorData = await orderResponse.json().catch(() => ({}))
-      console.error('Shiprocket order creation failed:', errorData)
+      console.error('Shiprocket order creation failed with status', orderResponse.status)
       return null
     }
 
     const shiprocketData = await orderResponse.json()
     return shiprocketData
   } catch (error) {
-    console.error('Shiprocket API error:', error)
+    console.error('Shiprocket API request failed')
     return null
   }
 }
@@ -191,7 +189,7 @@ export async function getShiprocketTracking(orderId: string) {
 
     return await trackingResponse.json()
   } catch (error) {
-    console.error('Shiprocket tracking error:', error)
+    console.error('Shiprocket tracking request failed')
     return null
   }
 }

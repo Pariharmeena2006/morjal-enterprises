@@ -44,6 +44,7 @@ export default function NewProductPage() {
     shippingInfo: '',
     faq: '',
     videoUrl: '',
+    featured: false,
     isPublished: true,
   })
 
@@ -71,6 +72,8 @@ export default function NewProductPage() {
           sellingPrice: parseFloat(formData.sellingPrice),
           mrp: formData.mrp ? parseFloat(formData.mrp) : null,
           stockQuantity: parseInt(formData.stockQuantity),
+          featured: formData.featured,
+          isPublished: formData.isPublished,
           images,
         })
       })
@@ -231,6 +234,7 @@ export default function NewProductPage() {
                     value={formData.mrp}
                     onChange={handleInputChange}
                   />
+                  {Number(formData.mrp) > Number(formData.sellingPrice) && Number(formData.mrp) > 0 && <p className="mt-1 text-xs font-medium text-green-700">{Math.round(((Number(formData.mrp) - Number(formData.sellingPrice)) / Number(formData.mrp)) * 100)}% discount</p>}
                 </div>
                 <div>
                   <Label htmlFor="stockQuantity">Stock Quantity *</Label>
@@ -252,6 +256,11 @@ export default function NewProductPage() {
                   />
                   <span className="text-sm font-medium text-navy">Publish this product in the shop</span>
                 </label>
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="h-4 w-4 accent-[#073B82]" />
+                  <span className="text-sm font-medium text-navy">Feature this product on the homepage</span>
+                </label>
+                {Number(formData.stockQuantity) <= 0 && formData.stockQuantity !== '' && <p className="text-sm font-medium text-amber-700">Stock status: out of stock</p>}
               </CardContent>
             </Card>
 

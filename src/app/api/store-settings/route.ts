@@ -10,6 +10,8 @@ export async function GET() {
         businessName: true, contactPhone: true, contactEmail: true, contactAddress: true,
         whatsappNumber: true, freeShippingThreshold: true, codEnabled: true, announcementMessage: true,
         socialFacebook: true, socialInstagram: true, socialTwitter: true, socialLinkedIn: true,
+        homeHeroFirstLine: true, homeHeroSecondLine: true, homeHeroDescription: true,
+        homeFeaturedTitle: true, homeFeaturedDescription: true, homeFeaturedVisible: true, homeVideosVisible: true,
       },
     })
     return NextResponse.json(settings || { businessName: 'MORJAL Enterprises', freeShippingThreshold: 1000, codEnabled: true })

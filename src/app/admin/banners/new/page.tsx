@@ -207,7 +207,7 @@ export default function NewBannerPage() {
                       {uploadingDesktop ? 'Uploading...' : 'Click to upload'}
                     </p>
                     <p className="text-xs text-gray-500">
-                      PNG, JPG, WebP up to 5MB
+                      PNG, JPG, WebP up to 4MB
                     </p>
                   </label>
                 </div>
@@ -255,7 +255,7 @@ export default function NewBannerPage() {
                       {uploadingMobile ? 'Uploading...' : 'Click to upload'}
                     </p>
                     <p className="text-xs text-gray-500">
-                      PNG, JPG, WebP up to 5MB
+                      PNG, JPG, WebP up to 4MB
                     </p>
                   </label>
                 </div>

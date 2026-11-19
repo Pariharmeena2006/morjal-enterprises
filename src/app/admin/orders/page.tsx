@@ -61,6 +61,9 @@ export default async function AdminOrdersPage() {
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6">
                         Customer
                       </th>
+                      <th className="hidden px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider lg:table-cell sm:px-6">
+                        Items
+                      </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:px-6">
                         Total
                       </th>
@@ -87,6 +90,9 @@ export default async function AdminOrdersPage() {
                         <td className="px-3 py-4 whitespace-nowrap text-xs text-gray-900 sm:px-6 sm:text-sm">
                           <div>{order.customerName}</div>
                           <div className="text-xs text-gray-500">{order.customerPhone}</div>
+                        </td>
+                        <td className="hidden max-w-xs px-3 py-4 text-xs text-gray-600 lg:table-cell sm:px-6">
+                          {order.items.map((item: any) => `${item.productName} × ${item.quantity}`).join(', ')}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-xs text-gray-900 sm:px-6 sm:text-sm">
                           ₹{order.total.toLocaleString()}

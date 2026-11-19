@@ -8,7 +8,8 @@ const editableFields = [
   'socialFacebook', 'socialInstagram', 'socialTwitter', 'socialLinkedIn',
   'ownerName', 'ownerTitle', 'ownerBio', 'ownerImageUrl', 'ownerStory', 'ownerAchievements',
   'announcementMessage', 'shippingPolicy', 'returnPolicy', 'cancellationPolicy',
-  'privacyPolicy', 'termsAndConditions', 'refundPolicy',
+  'privacyPolicy', 'termsAndConditions', 'refundPolicy', 'shiprocketEmail', 'shiprocketChannelId',
+  'homeHeroFirstLine', 'homeHeroSecondLine', 'homeHeroDescription', 'homeFeaturedTitle', 'homeFeaturedDescription',
 ] as const
 
 export async function GET() {
@@ -17,7 +18,9 @@ export async function GET() {
   }
   try {
     const settings = await prisma.websiteSettings.findFirst()
-    return NextResponse.json(settings || {})
+    if (!settings) return NextResponse.json({})
+    const { shiprocketApiKey, ...safeSettings } = settings
+    return NextResponse.json({ ...safeSettings, shiprocketApiKeyConfigured: Boolean(shiprocketApiKey) })
   } catch (error) {
     console.error('Error loading settings:', error)
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 })
@@ -34,6 +37,12 @@ export async function PUT(request: NextRequest) {
     for (const field of editableFields) {
       if (body[field] !== undefined) data[field] = body[field] ? String(body[field]).trim() : null
     }
+    if (typeof body.shiprocketEnabled === 'boolean') data.shiprocketEnabled = body.shiprocketEnabled
+    if (typeof body.homeFeaturedVisible === 'boolean') data.homeFeaturedVisible = body.homeFeaturedVisible
+    if (typeof body.homeVideosVisible === 'boolean') data.homeVideosVisible = body.homeVideosVisible
+    if (typeof body.shiprocketApiKey === 'string' && body.shiprocketApiKey.trim()) {
+      data.shiprocketApiKey = body.shiprocketApiKey.trim()
+    }
     if (body.freeShippingThreshold !== undefined) {
       const threshold = Number(body.freeShippingThreshold)
       if (!Number.isFinite(threshold) || threshold < 0) {
@@ -47,7 +56,8 @@ export async function PUT(request: NextRequest) {
     const settings = existing
       ? await prisma.websiteSettings.update({ where: { id: existing.id }, data })
       : await prisma.websiteSettings.create({ data })
-    return NextResponse.json(settings)
+    const { shiprocketApiKey, ...safeSettings } = settings
+    return NextResponse.json({ ...safeSettings, shiprocketApiKeyConfigured: Boolean(shiprocketApiKey) })
   } catch (error) {
     console.error('Error saving settings:', error)
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })

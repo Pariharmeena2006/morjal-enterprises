@@ -2,214 +2,85 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ShoppingBag, Package, DollarSign, Clock, Users, AlertTriangle, Video } from 'lucide-react'
+import { formatPrice } from '@/lib/utils'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import AdminSignOut from '@/components/admin-signout'
+import { ArrowRight, AlertTriangle, Package, ShoppingBag, TrendingUp } from 'lucide-react'
 
-async function getDashboardStats() {
-  const [
-    totalOrders,
-    totalProducts,
-    pendingOrders,
-    paidOrders,
-    codOrders,
-    lowStockProducts,
-    recentOrders
-  ] = await Promise.all([
-    prisma.order.count(),
-    prisma.product.count(),
-    prisma.order.count({ where: { orderStatus: 'pending' } }),
-    prisma.order.count({ where: { paymentStatus: 'paid' } }),
-    prisma.order.count({ where: { paymentMethod: 'cod' } }),
-    prisma.product.count({ where: { stockQuantity: { lte: 5 }, isOutOfStock: false } }),
-    prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { items: true }
-    })
-  ])
+export const dynamic = 'force-dynamic'
 
-  const totalSales = await prisma.order.aggregate({
-    where: { paymentStatus: 'paid' },
-    _sum: { total: true }
-  })
-
-  return {
-    totalOrders,
-    totalProducts,
-    totalSales: totalSales._sum.total || 0,
-    pendingOrders,
-    paidOrders,
-    codOrders,
-    lowStockProducts,
-    recentOrders: JSON.parse(JSON.stringify(recentOrders))
-  }
-}
+const statusLabels = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out for delivery', 'delivered', 'cancelled', 'returned']
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions)
-  
-  if (!session) {
-    redirect('/admin/login')
-  }
+  if (!session) redirect('/admin/login')
 
-  const stats = await getDashboardStats()
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const [totalProducts, publishedProducts, outOfStockProducts, totalOrders, newOrders, pendingOrders, processingOrders, shippedOrders, deliveredOrders, cancelledOrders, revenue, recentOrders, lowStockProducts, statusCounts] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: { isPublished: true } }),
+    prisma.product.count({ where: { OR: [{ isOutOfStock: true }, { stockQuantity: { lte: 0 } }] } }),
+    prisma.order.count(),
+    prisma.order.count({ where: { createdAt: { gte: since } } }),
+    prisma.order.count({ where: { orderStatus: 'pending' } }),
+    prisma.order.count({ where: { orderStatus: { in: ['confirmed', 'processing', 'packed'] } } }),
+    prisma.order.count({ where: { orderStatus: { in: ['shipped', 'out for delivery'] } } }),
+    prisma.order.count({ where: { orderStatus: 'delivered' } }),
+    prisma.order.count({ where: { orderStatus: { in: ['cancelled', 'returned'] } } }),
+    prisma.order.aggregate({ where: { paymentStatus: 'paid', orderStatus: { notIn: ['cancelled', 'returned'] } }, _sum: { total: true } }),
+    prisma.order.findMany({ take: 8, orderBy: { createdAt: 'desc' }, select: { id: true, orderNumber: true, customerName: true, total: true, orderStatus: true, paymentStatus: true, createdAt: true, _count: { select: { items: true } } } }),
+    prisma.product.findMany({ where: { isPublished: true, stockQuantity: { lte: 5, gt: 0 } }, take: 8, orderBy: { stockQuantity: 'asc' }, select: { id: true, name: true, slug: true, stockQuantity: true, sku: true } }),
+    prisma.order.groupBy({ by: ['orderStatus'], _count: { _all: true } }),
+  ])
+
+  const countByStatus = new Map(statusCounts.map((entry) => [entry.orderStatus, entry._count._all]))
+  const summary = [
+    { label: 'Total products', value: totalProducts, detail: `${publishedProducts} published`, icon: Package, tone: 'blue' },
+    { label: 'Out of stock', value: outOfStockProducts, detail: 'Needs restocking', icon: AlertTriangle, tone: 'amber' },
+    { label: 'Total orders', value: totalOrders, detail: `${newOrders} in the last 24 hours`, icon: ShoppingBag, tone: 'blue' },
+    { label: 'Paid revenue', value: formatPrice(revenue._sum.total || 0), detail: 'Orders marked paid', icon: TrendingUp, tone: 'green' },
+  ]
 
   return (
-    <div className="min-h-screen bg-grey-light">
-      {/* Admin Header */}
-      <div className="bg-navy text-white">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-              <p className="text-gray-300">MORJAL Enterprises</p>
-            </div>
-            <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 sm:justify-end sm:gap-4">
-              <span className="max-w-full break-all text-xs sm:text-sm">{session.user?.email}</span>
-              <AdminSignOut />
-            </div>
-          </div>
-        </div>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+        <div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#9b741d]">MORJAL Enterprises</p><h1 className="mt-1 text-2xl font-bold text-[#062653] sm:text-3xl">Dashboard</h1><p className="mt-2 text-sm text-slate-600">Welcome, {session.user?.name || 'Admin'}. Here is your store at a glance.</p></div>
+        <Link href="/admin/products/new" className="inline-flex items-center gap-2 rounded-xl bg-[#062653] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b3c7c]">Add product <ArrowRight className="h-4 w-4" /></Link>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-              <ShoppingBag className="h-4 w-4 text-navy" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
-              <p className="text-xs text-gray-600">All time orders</p>
-            </CardContent>
-          </Card>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Store summary">
+        {summary.map(({ label, value, detail, icon: Icon, tone }) => (
+          <article key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between"><p className="text-sm font-medium text-slate-500">{label}</p><span className={`rounded-xl p-2 ${tone === 'green' ? 'bg-green-50 text-green-700' : tone === 'amber' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-[#073B82]'}`}><Icon className="h-5 w-5" /></span></div>
+            <p className="mt-4 text-3xl font-bold tracking-tight text-[#062653]">{value}</p><p className="mt-1 text-xs text-slate-500">{detail}</p>
+          </article>
+        ))}
+      </section>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-              <Package className="h-4 w-4 text-navy" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalProducts}</div>
-              <p className="text-xs text-gray-600">Active products</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-              <DollarSign className="h-4 w-4 text-navy" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹{stats.totalSales.toLocaleString()}</div>
-              <p className="text-xs text-gray-600">From paid orders</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-              <Clock className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingOrders}</div>
-              <p className="text-xs text-gray-600">Awaiting processing</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">COD Orders</CardTitle>
-              <Users className="h-4 w-4 text-navy" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.codOrders}</div>
-              <p className="text-xs text-gray-600">Cash on delivery</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.lowStockProducts}</div>
-              <p className="text-xs text-gray-600">Products with low stock</p>
-            </CardContent>
-          </Card>
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-[#062653]">Order pipeline</h2><p className="mt-1 text-xs text-slate-500">Live counts by current fulfillment status</p></div><Link href="/admin/orders" className="text-sm font-semibold text-[#073B82] hover:underline">Manage orders</Link></div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
+          {statusLabels.map((status) => <div key={status} className="rounded-xl bg-slate-50 p-3"><p className="text-xs capitalize text-slate-500">{status}</p><p className="mt-1 text-xl font-bold text-[#062653]">{countByStatus.get(status) || 0}</p></div>)}
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="rounded-xl border border-blue-100 p-3"><p className="text-xs text-slate-500">New · last 24h</p><p className="mt-1 text-lg font-bold text-[#062653]">{newOrders}</p></div><div className="rounded-xl border border-blue-100 p-3"><p className="text-xs text-slate-500">Pending</p><p className="mt-1 text-lg font-bold text-[#062653]">{pendingOrders}</p></div><div className="rounded-xl border border-blue-100 p-3"><p className="text-xs text-slate-500">Processing group</p><p className="mt-1 text-lg font-bold text-[#062653]">{processingOrders}</p></div><div className="rounded-xl border border-blue-100 p-3"><p className="text-xs text-slate-500">In transit group</p><p className="mt-1 text-lg font-bold text-[#062653]">{shippedOrders}</p></div></div>
+        <p className="mt-3 text-xs text-slate-500">Delivered: {deliveredOrders} · Cancelled or returned: {cancelledOrders}</p>
+      </section>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 mb-8">
-          <Link href="/admin/products">
-            <Button className="w-full h-20 flex flex-col items-center justify-center">
-              <Package className="h-6 w-6 mb-2" />
-              <span>Products</span>
-            </Button>
-          </Link>
-          <Link href="/admin/orders">
-            <Button className="w-full h-20 flex flex-col items-center justify-center" variant="outline">
-              <ShoppingBag className="h-6 w-6 mb-2" />
-              <span>Orders</span>
-            </Button>
-          </Link>
-          <Link href="/admin/banners">
-            <Button className="w-full h-20 flex flex-col items-center justify-center" variant="outline">
-              <DollarSign className="h-6 w-6 mb-2" />
-              <span>Banners</span>
-            </Button>
-          </Link>
-          <Link href="/admin/videos">
-            <Button className="w-full h-20 flex flex-col items-center justify-center" variant="outline">
-              <Video className="h-6 w-6 mb-2" />
-              <span>Videos</span>
-            </Button>
-          </Link>
-          <Link href="/admin/settings">
-            <Button className="w-full h-20 flex flex-col items-center justify-center" variant="outline">
-              <Clock className="h-6 w-6 mb-2" />
-              <span>Settings</span>
-            </Button>
-          </Link>
-        </div>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-bold text-[#062653]">Recent orders</h2><p className="mt-1 text-xs text-slate-500">Latest customer activity</p></div><Link href="/admin/orders" className="text-sm font-semibold text-[#073B82] hover:underline">View all</Link></div>
+          <div className="divide-y divide-slate-100">
+            {recentOrders.map((order) => <Link key={order.id} href={`/admin/orders/${order.id}`} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition hover:bg-slate-50"><div><p className="font-semibold text-[#062653]">{order.orderNumber}</p><p className="mt-1 text-xs text-slate-500">{order.customerName} · {order._count.items} item(s) · {order.createdAt.toLocaleDateString('en-IN')}</p></div><div className="text-right"><p className="font-semibold text-[#062653]">{formatPrice(order.total)}</p><p className="mt-1 text-xs capitalize text-slate-500">{order.orderStatus} · {order.paymentStatus}</p></div></Link>)}
+            {recentOrders.length === 0 && <p className="px-5 py-12 text-center text-sm text-slate-500">No orders yet.</p>}
+          </div>
+        </section>
 
-        {/* Recent Orders */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Recent Orders</CardTitle>
-              <Link href="/admin/orders">
-                <Button variant="outline" size="sm">View All</Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {stats.recentOrders.length > 0 ? (
-              <div className="space-y-4">
-                {stats.recentOrders.map((order: any) => (
-                  <div key={order.id} className="flex justify-between items-center border-b pb-4 last:border-0">
-                    <div>
-                      <p className="font-semibold">{order.orderNumber}</p>
-                      <p className="text-sm text-gray-600">{order.customerName}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">₹{order.total.toLocaleString()}</p>
-                      <p className="text-sm text-gray-600">{order.orderStatus}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-gray-500 py-8">No orders yet</p>
-            )}
-          </CardContent>
-        </Card>
+        <section className="rounded-2xl border border-amber-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-amber-100 px-5 py-4"><div><h2 className="font-bold text-[#062653]">Low-stock alerts</h2><p className="mt-1 text-xs text-slate-500">Published items with 1–5 units</p></div><AlertTriangle className="h-5 w-5 text-amber-600" /></div>
+          <div className="divide-y divide-slate-100">
+            {lowStockProducts.map((product) => <Link key={product.id} href={`/admin/products/${product.id}/edit`} className="flex items-center justify-between gap-3 px-5 py-4 hover:bg-amber-50/50"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[#062653]">{product.name}</p><p className="mt-1 text-xs text-slate-500">{product.sku || product.slug}</p></div><span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">{product.stockQuantity} left</span></Link>)}
+            {lowStockProducts.length === 0 && <p className="px-5 py-12 text-center text-sm text-slate-500">No low-stock products.</p>}
+          </div>
+        </section>
       </div>
     </div>
   )

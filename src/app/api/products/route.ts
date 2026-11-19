@@ -8,7 +8,7 @@ export async function GET() {
     const products = await prisma.product.findMany({
       where: { isPublished: true },
       include: { images: { orderBy: { order: 'asc' } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
     })
 
     return NextResponse.json(products)

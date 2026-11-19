@@ -29,6 +29,8 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [checkoutError, setCheckoutError] = useState('')
   const [orderNumber, setOrderNumber] = useState('')
+  const [trackingToken, setTrackingToken] = useState('')
+  const [idempotencyKey, setIdempotencyKey] = useState('')
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1000)
   const [codEnabled, setCodEnabled] = useState(true)
 
@@ -60,14 +62,17 @@ export default function CheckoutPage() {
     setLoading(true)
     setCheckoutError('')
     try {
+      const requestKey = idempotencyKey || window.crypto.randomUUID()
+      if (!idempotencyKey) setIdempotencyKey(requestKey)
       const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestKey },
         body: JSON.stringify({ ...formData, paymentMethod, items: cartItems }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to place your order')
       setOrderNumber(data.orderNumber)
+      setTrackingToken(data.trackingToken)
       localStorage.removeItem('cart')
       window.dispatchEvent(new Event('cart-updated'))
       setCartItems([])
@@ -108,6 +113,7 @@ export default function CheckoutPage() {
           <h1 className="mb-3 text-3xl font-bold text-navy">Order placed successfully</h1>
           <p className="mb-2 text-text">Your order number is <strong>{orderNumber}</strong>.</p>
           <p className="mb-6 text-text">We’ll contact you to confirm delivery details. Payment is due on delivery.</p>
+          {trackingToken && <Link href={`/track-order?order=${encodeURIComponent(orderNumber)}#token=${encodeURIComponent(trackingToken)}`}><Button variant="outline" className="mb-4 border-navy text-navy">Track this order</Button></Link>}
           <Link href="/products"><Button className="bg-navy text-white hover:bg-navy-deep">Continue shopping</Button></Link>
         </div>
       </div>

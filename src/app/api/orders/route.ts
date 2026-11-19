@@ -1,15 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { createShiprocketOrder } from '@/lib/shiprocket'
 
 type RequestedItem = { productId?: string; id?: string; quantity?: number }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const idempotencyKey = request.headers.get('Idempotency-Key')?.trim()
+    if (!idempotencyKey || !/^[a-zA-Z0-9-]{32,64}$/.test(idempotencyKey)) {
+      return NextResponse.json({ error: 'Refresh checkout and try placing the order again.' }, { status: 400 })
+    }
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { idempotencyKey },
+      select: { id: true, orderNumber: true, total: true, customerPhone: true },
+    })
+    if (existingOrder) {
+      if (existingOrder.customerPhone !== String(body.phone || '').trim()) {
+        return NextResponse.json({ error: 'Unable to verify this order request.' }, { status: 409 })
+      }
+      return NextResponse.json({ id: existingOrder.id, orderNumber: existingOrder.orderNumber, total: existingOrder.total, trackingToken: idempotencyKey }, { status: 200 })
+    }
     const required = ['fullName', 'phone', 'address', 'city', 'state', 'pinCode']
     if (required.some((field) => typeof body[field] !== 'string' || !body[field].trim())) {
       return NextResponse.json({ error: 'Please complete all required delivery details.' }, { status: 400 })
+    }
+    if (body.fullName.trim().length > 150 || body.address.trim().length > 500 || body.city.trim().length > 100 || body.state.trim().length > 100 || (typeof body.orderNotes === 'string' && body.orderNotes.length > 1000)) {
+      return NextResponse.json({ error: 'One or more order details are too long.' }, { status: 400 })
+    }
+    if (body.email !== undefined && body.email !== null && body.email !== '' && (typeof body.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))) {
+      return NextResponse.json({ error: 'Enter a valid email address or leave it blank.' }, { status: 400 })
+    }
+    if ((body.landmark != null && typeof body.landmark !== 'string') || (body.orderNotes != null && typeof body.orderNotes !== 'string')) {
+      return NextResponse.json({ error: 'Landmark and order notes must be text.' }, { status: 400 })
     }
     if (!/^[0-9]{10}$/.test(body.phone) || !/^[0-9]{6}$/.test(body.pinCode)) {
       return NextResponse.json({ error: 'Enter a valid 10-digit phone number and 6-digit PIN code.' }, { status: 400 })
@@ -17,8 +41,11 @@ export async function POST(request: NextRequest) {
     if (body.paymentMethod !== 'cod') {
       return NextResponse.json({ error: 'Online payments are not available yet. Please select Cash on Delivery.' }, { status: 400 })
     }
-    if (!Array.isArray(body.items) || body.items.length === 0) {
+    if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {
       return NextResponse.json({ error: 'Your cart is empty.' }, { status: 400 })
+    }
+    if (body.items.some((item: unknown) => !item || typeof item !== 'object')) {
+      return NextResponse.json({ error: 'Cart contains an invalid product or quantity.' }, { status: 400 })
     }
 
     const requestedItems = body.items as RequestedItem[]
@@ -43,7 +70,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cash on Delivery is currently unavailable. Please contact us to place an order.' }, { status: 400 })
     }
     const productIds = Array.from(new Set(normalized.map((item) => item.productId)))
-    const orderNumber = `MJ${Date.now().toString().slice(-8)}${Math.random().toString(36).slice(2, 5).toUpperCase()}`
+    const orderNumber = `MJ${Date.now().toString().slice(-8)}${randomBytes(3).toString('hex').toUpperCase()}`
 
     const result = await prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({
@@ -77,7 +104,7 @@ export async function POST(request: NextRequest) {
       const subtotal = items.reduce((sum, { requested, product }) => sum + product.sellingPrice * requested.quantity, 0)
       const freeShippingThreshold = settings?.freeShippingThreshold ?? 1000
       const shippingCharge = subtotal >= freeShippingThreshold ? 0 : 99
-      return tx.order.create({
+      const order = await tx.order.create({
         data: {
           orderNumber,
           customerName: body.fullName.trim(), customerEmail: body.email?.trim() || null,
@@ -85,6 +112,9 @@ export async function POST(request: NextRequest) {
           state: body.state.trim(), pinCode: body.pinCode.trim(), landmark: body.landmark?.trim() || null,
           orderNotes: body.orderNotes?.trim() || null, subtotal, shippingCharge, discount: 0,
           total: subtotal + shippingCharge, paymentMethod: 'cod', paymentStatus: 'pending', orderStatus: 'pending',
+          idempotencyKey,
+          trackingTokenHash: createHash('sha256').update(idempotencyKey).digest('hex'),
+          statusHistory: { create: { status: 'pending', note: 'Order placed by customer.' } },
           items: {
             create: items.map(({ requested, product }) => ({
               productId: product.id, productName: product.name, quantity: requested.quantity,
@@ -94,24 +124,13 @@ export async function POST(request: NextRequest) {
         },
         select: { id: true, orderNumber: true, total: true },
       })
+      return order
     })
 
-    // Create order in Shiprocket if enabled
-    const orderWithItems = await prisma.order.findUnique({
-      where: { id: result.id },
-      include: { items: true },
-    })
-
-    if (orderWithItems) {
-      createShiprocketOrder(orderWithItems).catch((error) => {
-        console.error('Failed to create Shiprocket order:', error)
-      })
-    }
-
-    return NextResponse.json(result, { status: 201 })
+    return NextResponse.json({ ...result, trackingToken: idempotencyKey }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to place order.'
-    console.error('Error creating order:', error)
+    console.error('Error creating order')
     if (message.includes('stock') || message.includes('available')) {
       return NextResponse.json({ error: message }, { status: 409 })
     }

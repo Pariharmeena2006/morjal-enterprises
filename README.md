@@ -182,21 +182,7 @@ COD is enabled by default. To disable:
 
 ## Image Upload
 
-Currently, images are stored as URLs in the database. For production:
-
-1. **Cloudinary Integration** (Recommended):
-   - Sign up at cloudinary.com
-   - Add Cloudinary credentials to `.env`
-   - Update image upload API to use Cloudinary SDK
-
-2. **AWS S3 Integration**:
-   - Create S3 bucket
-   - Add AWS credentials to `.env`
-   - Configure AWS SDK for image uploads
-
-3. **Local Storage** (Development only):
-   - Images stored in `public/uploads`
-   - Not recommended for production
+Admin image uploads use the Vercel Blob server SDK. Create a Blob store in the Vercel project and set `BLOB_READ_WRITE_TOKEN` in Vercel Production (and your ignored local `.env.local` for local upload testing). This token is server-only; it must not use a `NEXT_PUBLIC_` prefix. New product and banner image URLs are stored in PostgreSQL. Uploads are authenticated and validate the MIME type, file signature, and size.
 
 ## Deployment
 
@@ -207,7 +193,7 @@ Currently, images are stored as URLs in the database. For production:
 3. Add environment variables in Vercel dashboard
 4. Deploy
 
-For production, set `MORJAL_DATABASE_URL` in Vercel to the connection string for the intended Prisma Postgres **production branch**. Verify the project and branch in Prisma Console first. The credential previously shared in chat must be rotated before it is used. Do not deploy the existing SQLite migration files to PostgreSQL.
+For production, set `MORJAL_DATABASE_URL` in Vercel to the connection string for the intended Prisma Postgres **production branch**. Verify the project and branch in Prisma Console first. The credential previously shared in chat must be rotated before it is used. Do not deploy the existing SQLite migration files to PostgreSQL. Before deploying schema-dependent features, review and apply the additive PostgreSQL SQL in `prisma/manual-postgres-migrations/20261119_admin_order_management.sql` against a backed-up staging database, then the intended production database. Do not run `prisma migrate deploy` with the historical SQLite migration chain.
 
 ### Environment Variables for Production
 
@@ -215,11 +201,9 @@ Required environment variables:
 - `MORJAL_DATABASE_URL` (PostgreSQL connection string for the intended production branch)
 - `NEXTAUTH_SECRET` (generate a secure random string)
 - `NEXTAUTH_URL` (your production domain)
-- `RAZORPAY_KEY_ID`
-- `RAZORPAY_KEY_SECRET`
-- `RAZORPAY_WEBHOOK_SECRET`
-- `SHIPROCKET_EMAIL`
-- `SHIPROCKET_PASSWORD`
+- `BLOB_READ_WRITE_TOKEN` (server-only Vercel Blob store token; required for persistent uploads)
+
+Shiprocket credentials are held by the existing server-side website settings and are never returned by the admin settings API. Keep Shiprocket disabled until its account credentials and pickup configuration have been verified. Razorpay is not active in the current checkout; no payment secret is required for the existing COD flow.
 
 ## Development
 

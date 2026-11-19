@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,51 +6,54 @@ datasource db {
   provider = "postgresql"
   url      = env("MORJAL_DATABASE_URL")
 }
-  
 
 model Admin {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String               @id @default(cuid())
+  email              String               @unique
+  password           String
+  name               String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  orderStatusChanges OrderStatusHistory[]
 }
 
 model Product {
-  id                String   @id @default(cuid())
-  name              String
-  slug              String   @unique
-  sku               String?  @unique
-  shortDescription  String
-  description       String
-  brand             String?
-  sellingPrice      Float
-  mrp               Float?
-  discountPercent   Float?
-  stockQuantity     Int      @default(0)
-  category          String
-  features          String?
-  specifications    String?
-  applications      String?
-  material          String?
-  dimensions        String?
-  weight            String?
-  packageDimensions String?
-  manufacturer      String?
-  countryOfOrigin   String?
-  certifications    String?
+  id                 String         @id @default(cuid())
+  name               String
+  slug               String         @unique
+  sku                String?        @unique
+  shortDescription   String
+  description        String
+  brand              String?
+  sellingPrice       Float
+  mrp                Float?
+  discountPercent    Float?
+  stockQuantity      Int            @default(0)
+  category           String
+  features           String?
+  specifications     String?
+  applications       String?
+  material           String?
+  dimensions         String?
+  weight             String?
+  packageDimensions  String?
+  manufacturer       String?
+  countryOfOrigin    String?
+  certifications     String?
   safetyInstructions String?
-  warranty          String?
-  shippingInfo      String?
-  faq               String?
-  videoUrl          String?
-  isPublished       Boolean  @default(false)
-  isOutOfStock      Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  images            ProductImage[]
-  orderItems        OrderItem[]
+  warranty           String?
+  shippingInfo       String?
+  faq                String?
+  videoUrl           String?
+  featured           Boolean        @default(false)
+  isPublished        Boolean        @default(false)
+  isOutOfStock       Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  images             ProductImage[]
+  orderItems         OrderItem[]
+
+  @@index([isPublished, featured, createdAt])
 }
 
 model ProductImage {
@@ -79,34 +81,41 @@ model Banner {
 }
 
 model Order {
-  id                  String    @id @default(cuid())
-  orderNumber         String    @unique
-  customerName        String
-  customerEmail       String?
-  customerPhone       String
-  address             String
-  city                String
-  state               String
-  pinCode             String
-  landmark            String?
-  orderNotes          String?
-  subtotal            Float
-  shippingCharge      Float     @default(0)
-  discount            Float     @default(0)
-  total               Float
-  paymentMethod       String
-  paymentStatus       String    @default("pending")
-  orderStatus         String    @default("pending")
-  razorpayOrderId     String?
-  razorpayPaymentId   String?
-  razorpaySignature   String?
-  shipmentId          String?
-  trackingNumber      String?
-  courierName         String?
-  estimatedDelivery   DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  items               OrderItem[]
+  id                String               @id @default(cuid())
+  orderNumber       String               @unique
+  customerName      String
+  customerEmail     String?
+  customerPhone     String
+  address           String
+  city              String
+  state             String
+  pinCode           String
+  landmark          String?
+  orderNotes        String?
+  subtotal          Float
+  shippingCharge    Float                @default(0)
+  discount          Float                @default(0)
+  total             Float
+  paymentMethod     String
+  paymentStatus     String               @default("pending")
+  orderStatus       String               @default("pending")
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  shipmentId        String?
+  shiprocketOrderId String?
+  trackingNumber    String?
+  courierName       String?
+  estimatedDelivery DateTime?
+  idempotencyKey    String?              @unique
+  trackingTokenHash String?              @unique
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  items             OrderItem[]
+  statusHistory     OrderStatusHistory[]
+
+  @@index([orderStatus, createdAt])
+  @@index([paymentStatus, createdAt])
 }
 
 model OrderItem {
@@ -121,40 +130,60 @@ model OrderItem {
   totalPrice  Float
 }
 
+model OrderStatusHistory {
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status           String
+  note             String?
+  changedByAdminId String?
+  changedByAdmin   Admin?   @relation(fields: [changedByAdminId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
 model WebsiteSettings {
-  id                    String   @id @default(cuid())
-  businessName          String   @default("MORJAL Enterprises")
-  logoUrl               String?
-  contactPhone          String?
-  contactEmail          String?
-  contactAddress        String?
-  whatsappNumber        String?
-  socialFacebook        String?
-  socialInstagram       String?
-  socialTwitter         String?
-  socialLinkedIn        String?
-  currency              String   @default("INR")
-  freeShippingThreshold Float?
-  codEnabled            Boolean  @default(true)
-  shippingPolicy        String?
-  returnPolicy          String?
-  cancellationPolicy    String?
-  privacyPolicy         String?
-  termsAndConditions    String?
-  refundPolicy          String?
-  announcementMessage   String?
-  ownerName             String?
-  ownerTitle            String?
-  ownerBio              String?
-  ownerImageUrl         String?
-  ownerStory            String?
-  ownerAchievements     String?
-  shiprocketEnabled     Boolean  @default(false)
-  shiprocketEmail       String?
-  shiprocketApiKey      String?
-  shiprocketChannelId   String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  businessName            String   @default("MORJAL Enterprises")
+  logoUrl                 String?
+  contactPhone            String?
+  contactEmail            String?
+  contactAddress          String?
+  whatsappNumber          String?
+  socialFacebook          String?
+  socialInstagram         String?
+  socialTwitter           String?
+  socialLinkedIn          String?
+  currency                String   @default("INR")
+  freeShippingThreshold   Float?
+  codEnabled              Boolean  @default(true)
+  shippingPolicy          String?
+  returnPolicy            String?
+  cancellationPolicy      String?
+  privacyPolicy           String?
+  termsAndConditions      String?
+  refundPolicy            String?
+  announcementMessage     String?
+  homeHeroFirstLine       String?
+  homeHeroSecondLine      String?
+  homeHeroDescription     String?
+  homeFeaturedTitle       String?
+  homeFeaturedDescription String?
+  homeFeaturedVisible     Boolean  @default(true)
+  homeVideosVisible       Boolean  @default(true)
+  ownerName               String?
+  ownerTitle              String?
+  ownerBio                String?
+  ownerImageUrl           String?
+  ownerStory              String?
+  ownerAchievements       String?
+  shiprocketEnabled       Boolean  @default(false)
+  shiprocketEmail         String?
+  shiprocketApiKey        String?
+  shiprocketChannelId     String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model Page {
@@ -168,15 +197,15 @@ model Page {
 }
 
 model Video {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  videoUrl    String
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  videoUrl     String
   thumbnailUrl String?
-  order       Int      @default(0)
-  isEnabled   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  order        Int      @default(0)
+  isEnabled    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model News {

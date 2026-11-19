@@ -14,21 +14,27 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const sellingPrice = Number(body.sellingPrice)
+    const mrp = body.mrp === '' || body.mrp == null ? null : Number(body.mrp)
     const stockQuantity = Number(body.stockQuantity)
-    const images = Array.isArray(body.images)
-      ? body.images.map((image: { url?: unknown; alt?: unknown }) => ({
+    const rawImages: unknown[] = Array.isArray(body.images) ? body.images : []
+    if (rawImages.some((image) => !image || typeof image !== 'object' || typeof (image as { url?: unknown }).url !== 'string')) {
+      return NextResponse.json({ error: 'Product images must each include a valid URL.' }, { status: 400 })
+    }
+    const images = rawImages.map((value) => {
+      const image = value as { url: string; alt?: unknown }
+      return {
           url: typeof image.url === 'string' ? image.url.trim() : '',
           alt: typeof image.alt === 'string' ? image.alt.trim() : null,
-        })).filter((image: { url: string }) => image.url)
-      : []
-    if (!body.name?.trim() || !body.category?.trim() || !body.shortDescription?.trim() || !body.description?.trim()) {
+      }
+    }).filter((image) => image.url)
+    if (typeof body.name !== 'string' || !body.name.trim() || typeof body.category !== 'string' || !body.category.trim() || typeof body.shortDescription !== 'string' || !body.shortDescription.trim() || typeof body.description !== 'string' || !body.description.trim()) {
       return NextResponse.json({ error: 'Complete all required product fields' }, { status: 400 })
     }
-    const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : generateSlug(body.name)
-    if (!Number.isFinite(sellingPrice) || sellingPrice < 0 || !Number.isInteger(stockQuantity) || stockQuantity < 0) {
+    const slug = typeof body.slug === 'string' && body.slug.trim() ? generateSlug(body.slug.trim()) : generateSlug(body.name)
+    if (!slug || !Number.isFinite(sellingPrice) || sellingPrice < 0 || (mrp !== null && (!Number.isFinite(mrp) || mrp < sellingPrice)) || !Number.isInteger(stockQuantity) || stockQuantity < 0) {
       return NextResponse.json({ error: 'Price and stock must be valid non-negative numbers' }, { status: 400 })
     }
-    if (images.length > 5) {
+    if (images.length > 5 || images.some((image: { url: string }) => !/^https:\/\//i.test(image.url))) {
       return NextResponse.json({ error: 'A product can have up to 5 photos' }, { status: 400 })
     }
     
@@ -36,12 +42,13 @@ export async function POST(request: NextRequest) {
       data: {
         name: body.name,
         slug,
-        sku: body.sku || null,
+        sku: typeof body.sku === 'string' && body.sku.trim() ? body.sku.trim() : null,
         shortDescription: body.shortDescription,
         description: body.description,
         brand: body.brand,
         sellingPrice,
-        mrp: body.mrp === '' || body.mrp == null ? null : Number(body.mrp),
+        mrp,
+        discountPercent: mrp && mrp > 0 ? Math.round(((mrp - sellingPrice) / mrp) * 100) : null,
         stockQuantity,
         isOutOfStock: stockQuantity === 0,
         category: body.category,
@@ -59,7 +66,8 @@ export async function POST(request: NextRequest) {
         warranty: body.warranty,
         shippingInfo: body.shippingInfo,
         faq: body.faq,
-        isPublished: body.isPublished ?? true,
+        featured: body.featured === true,
+        isPublished: body.isPublished === true,
         images: images.length > 0 ? {
           create: images.map((image: { url: string; alt: string | null }, index: number) => ({
             url: image.url,
@@ -72,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(product)
   } catch (error) {
-    console.error('Error creating product:', error)
+    console.error('Error creating product')
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
   }
 }
@@ -86,31 +94,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, images, ...productData } = body
-
-    // Delete existing images
-    await prisma.productImage.deleteMany({
-      where: { productId: id }
-    })
-
-    // Update product with new images
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        ...productData,
-        images: images && images.length > 0 ? {
-          create: images.map((img: any, index: number) => ({
-            url: img.url,
-            alt: img.alt,
-            order: index,
-          }))
-        } : undefined,
-      }
-    })
-
-    return NextResponse.json(product)
+    const { id } = body
+    if (typeof id !== 'string' || !id) return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
+    const current = await prisma.product.findUnique({ where: { id }, select: { id: true } })
+    if (!current) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Use the product-specific endpoint to update this product.' }, { status: 405 })
   } catch (error) {
-    console.error('Error updating product:', error)
+    console.error('Error validating product update')
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
   }
 }
@@ -130,13 +120,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
     }
 
-    await prisma.product.delete({
-      where: { id }
-    })
+    const orderItemCount = await prisma.orderItem.count({ where: { productId: id } })
+    if (orderItemCount > 0) {
+      await prisma.product.update({ where: { id }, data: { isPublished: false } })
+      return NextResponse.json({ success: true, archived: true })
+    }
+    await prisma.product.delete({ where: { id } })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting product:', error)
+    console.error('Error deleting product')
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
   }
 }
@@ -150,7 +143,7 @@ export async function GET() {
     }
 
     const products = await prisma.product.findMany({
-      include: { images: true },
+      include: { images: { orderBy: { order: 'asc' } } },
       orderBy: { createdAt: 'desc' }
     })
 

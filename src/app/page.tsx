@@ -27,6 +27,7 @@ interface Product {
   stockQuantity: number
   isOutOfStock: boolean
   category: string
+  featured?: boolean
   images: Array<{ url: string; alt?: string | null }>
 }
 
@@ -40,6 +41,26 @@ interface Banner {
   mobileImageUrl?: string
   isEnabled: boolean
   order: number
+}
+
+interface HomeSettings {
+  homeHeroFirstLine?: string | null
+  homeHeroSecondLine?: string | null
+  homeHeroDescription?: string | null
+  homeFeaturedTitle?: string | null
+  homeFeaturedDescription?: string | null
+  homeFeaturedVisible?: boolean
+  homeVideosVisible?: boolean
+}
+
+const defaultHomeSettings: Required<HomeSettings> = {
+  homeHeroFirstLine: 'The right safety gear.',
+  homeHeroSecondLine: 'Ready for work.',
+  homeHeroDescription: 'Shop electrical safety equipment and workplace essentials selected to help teams work with confidence.',
+  homeFeaturedTitle: 'Popular picks',
+  homeFeaturedDescription: 'Explore the essentials customers look for.',
+  homeFeaturedVisible: true,
+  homeVideosVisible: true,
 }
 
 const promiseCards = [
@@ -66,13 +87,15 @@ export default function Home() {
   const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(true)
   const [productError, setProductError] = useState('')
+  const [homeSettings, setHomeSettings] = useState<Required<HomeSettings>>(defaultHomeSettings)
 
   useEffect(() => {
     let active = true
     const load = async () => {
-      const [productResponse, bannerResponse] = await Promise.allSettled([
+      const [productResponse, bannerResponse, settingsResponse] = await Promise.allSettled([
         fetch('/api/products', { cache: 'no-store' }),
         fetch('/api/banners', { cache: 'no-store' }),
+        fetch('/api/store-settings', { cache: 'no-store' }),
       ])
       if (!active) return
 
@@ -92,6 +115,10 @@ export default function Home() {
           setBanners(data.filter((item: Banner) => item.isEnabled).sort((a: Banner, b: Banner) => a.order - b.order))
         }
       }
+      if (settingsResponse.status === 'fulfilled' && settingsResponse.value.ok) {
+        const settings = await settingsResponse.value.json()
+        if (active && settings && !settings.error) setHomeSettings({ ...defaultHomeSettings, ...settings })
+      }
       if (active) setLoading(false)
     }
 
@@ -105,6 +132,9 @@ export default function Home() {
 
   const heroBanner = banners[0]
   const heroImage = heroBanner?.desktopImageUrl || heroBanner?.mobileImageUrl || '/banner-1.jpeg'
+  const featuredProducts = products.some((product) => product.featured)
+    ? products.filter((product) => product.featured).slice(0, 3)
+    : products.slice(0, 3)
 
   return (
     <div className="home-page min-h-screen overflow-hidden bg-white">
@@ -113,11 +143,11 @@ export default function Home() {
           <div className="home-hero-copy relative z-10 flex flex-col justify-center px-4 py-10 sm:px-8 sm:py-12 md:px-10 md:py-16 lg:px-14 lg:py-20">
             <span className="home-hero-kicker text-xs sm:text-sm"><span className="home-kicker-dot" />MORJAL ENTERPRISES · KOTA, INDIA</span>
             <h1 className="mt-5 max-w-2xl text-3xl font-bold leading-[1.12] tracking-[-0.025em] text-white sm:text-4xl sm:leading-[1.12] lg:text-[3.8rem]">
-              <span className="block">The right safety gear.</span>
-              <span className="mt-1 block text-gold sm:mt-2">Ready for work.</span>
+              <span className="block">{homeSettings.homeHeroFirstLine}</span>
+              <span className="mt-1 block text-gold sm:mt-2">{homeSettings.homeHeroSecondLine}</span>
             </h1>
             <p className="mt-5 max-w-lg text-sm leading-6 text-blue-100 sm:mt-6 sm:text-base sm:leading-7">
-              Shop electrical safety equipment and workplace essentials selected to help teams work with confidence.
+              {homeSettings.homeHeroDescription}
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row">
               <Link href="/products"><Button size="lg" className="h-10 sm:h-12 bg-gold px-4 sm:px-6 text-sm sm:text-base font-semibold text-navy hover:bg-gold/90">Shop all products <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
@@ -185,19 +215,19 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-featured-section py-8 sm:py-12 lg:py-16">
+      {homeSettings.homeFeaturedVisible && <section className="home-featured-section py-8 sm:py-12 lg:py-16">
         <div className="container mx-auto px-4">
           <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div><p className="home-section-label text-[9px] sm:text-[10px]">SHOP THE RANGE</p><h2 className="mt-2 text-lg font-bold tracking-tight text-navy sm:text-xl lg:text-2xl">Popular picks</h2><p className="mt-1 text-[10px] text-gray-600 sm:text-xs lg:text-sm">Explore the essentials customers look for.</p></div>
+            <div><p className="home-section-label text-[9px] sm:text-[10px]">SHOP THE RANGE</p><h2 className="mt-2 text-lg font-bold tracking-tight text-navy sm:text-xl lg:text-2xl">{homeSettings.homeFeaturedTitle}</h2><p className="mt-1 text-[10px] text-gray-600 sm:text-xs lg:text-sm">{homeSettings.homeFeaturedDescription}</p></div>
             <Link href="/products"><Button variant="outline" className="w-fit border-navy text-navy hover:bg-navy hover:text-white text-[10px] sm:text-xs">See the full shop <ArrowRight className="ml-2 h-3 w-3 sm:h-3.5 sm:w-3.5" /></Button></Link>
           </div>
           {loading ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="home-product-skeleton" />)}</div>
           ) : productError ? (
             <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-6 text-center text-sm text-red-800">{productError}</p>
-          ) : products.length ? (
+          ) : featuredProducts.length ? (
             <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:thin] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
-              {products.slice(0, 3).map((product) => (
+              {featuredProducts.map((product) => (
                 <div className="w-[85%] shrink-0 snap-start sm:w-auto" key={product.id}>
                   <ProductCard product={product} />
                 </div>
@@ -207,9 +237,9 @@ export default function Home() {
             <div className="home-featured-empty"><ShieldCheck className="mx-auto h-8 w-8 text-navy/50" /><p className="text-xs sm:text-sm">Products will appear here soon.</p><Link href="/contact">Ask us about a product <ArrowRight className="ml-1 inline h-3.5 w-3.5" /></Link></div>
           )}
         </div>
-      </section>
+      </section>}
 
-      <VideoSection />
+      {homeSettings.homeVideosVisible && <VideoSection />}
 
       <section className="home-about-row py-10 sm:py-16 lg:py-20">
         <div className="container mx-auto grid items-center gap-6 px-4 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, PackageCheck, Save } from 'lucide-react'
+import { ArrowLeft, PackageCheck, Save, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -31,12 +32,14 @@ interface OrderDetails {
   trackingNumber?: string | null
   courierName?: string | null
   shipmentId?: string | null
+  shiprocketOrderId?: string | null
   estimatedDelivery?: string | null
   createdAt: string
-  items: Array<{ id: string; productName: string; quantity: number; unitPrice: number; totalPrice: number }>
+  items: Array<{ id: string; productName: string; quantity: number; unitPrice: number; totalPrice: number; product: { images: Array<{ url: string; alt: string | null }> } }>
+  statusHistory: Array<{ id: string; status: string; note: string | null; createdAt: string }>
 }
 
-const orderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
+const orderStatuses = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out for delivery', 'delivered', 'cancelled', 'returned']
 const paymentStatuses = ['pending', 'paid', 'failed', 'refunded']
 
 export default function AdminOrderDetailPage() {
@@ -49,11 +52,15 @@ export default function AdminOrderDetailPage() {
     courierName: '',
     shipmentId: '',
     estimatedDelivery: '',
+    statusNote: '',
+    confirmCodCollected: false,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [creatingShipment, setCreatingShipment] = useState(false)
+  const [refreshingTracking, setRefreshingTracking] = useState(false)
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -69,6 +76,8 @@ export default function AdminOrderDetailPage() {
           courierName: data.courierName || '',
           shipmentId: data.shipmentId || '',
           estimatedDelivery: data.estimatedDelivery ? new Date(data.estimatedDelivery).toISOString().slice(0, 10) : '',
+          statusNote: '',
+          confirmCodCollected: false,
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to load order')
@@ -98,6 +107,41 @@ export default function AdminOrderDetailPage() {
       setError(err instanceof Error ? err.message : 'Unable to save order')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const createShipment = async () => {
+    setCreatingShipment(true)
+    setError('')
+    setNotice('')
+    try {
+      const response = await fetch(`/api/admin/orders/${params.id}/shiprocket`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Unable to create the Shiprocket order')
+      setOrder((current) => current ? { ...current, ...data } : current)
+      setForm((current) => ({ ...current, shipmentId: data.shipmentId || current.shipmentId, trackingNumber: data.trackingNumber || current.trackingNumber, courierName: data.courierName || current.courierName }))
+      setNotice('Shiprocket order created. Check its response for AWB and courier assignment.')
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to create the Shiprocket order')
+    } finally {
+      setCreatingShipment(false)
+    }
+  }
+
+  const refreshTracking = async () => {
+    setRefreshingTracking(true)
+    setError('')
+    try {
+      const response = await fetch(`/api/admin/orders/${params.id}/track`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Unable to refresh tracking.')
+      setOrder((current) => current ? { ...current, ...data } : current)
+      setForm((current) => ({ ...current, orderStatus: data.orderStatus || current.orderStatus, trackingNumber: data.trackingNumber || current.trackingNumber, courierName: data.courierName || current.courierName }))
+      setNotice('Shipment status was refreshed from Shiprocket.')
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to refresh tracking.')
+    } finally {
+      setRefreshingTracking(false)
     }
   }
 
@@ -131,7 +175,7 @@ export default function AdminOrderDetailPage() {
               <CardContent className="divide-y">
                 {order.items.map((item) => (
                   <div key={item.id} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
-                    <div><p className="font-semibold text-navy">{item.productName}</p><p className="text-sm text-gray-600">Qty {item.quantity} × {formatPrice(item.unitPrice)}</p></div>
+                    <div className="flex min-w-0 items-center gap-3"><div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-background-light">{item.product.images[0]?.url && <Image src={item.product.images[0].url} alt={item.product.images[0].alt || item.productName} fill sizes="48px" className="object-cover" />}</div><div><p className="font-semibold text-navy">{item.productName}</p><p className="text-sm text-gray-600">Qty {item.quantity} × {formatPrice(item.unitPrice)}</p></div></div>
                     <p className="font-semibold text-navy">{formatPrice(item.totalPrice)}</p>
                   </div>
                 ))}
@@ -153,11 +197,20 @@ export default function AdminOrderDetailPage() {
                 <p className="pt-2 text-gray-500">Placed {new Date(order.createdAt).toLocaleString()}</p>
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader><CardTitle>Status history</CardTitle></CardHeader>
+              <CardContent>
+                {order.statusHistory.length ? <ol className="space-y-4">{order.statusHistory.map((event) => <li key={event.id} className="border-l-2 border-gold pl-3"><p className="text-sm font-semibold capitalize text-navy">{event.status}</p>{event.note && <p className="text-xs text-gray-600">{event.note}</p>}<time className="text-xs text-gray-400">{new Date(event.createdAt).toLocaleString('en-IN')}</time></li>)}</ol> : <p className="text-sm text-gray-500">No status updates recorded yet.</p>}
+              </CardContent>
+            </Card>
           </div>
 
           <Card className="h-fit">
             <CardHeader><CardTitle className="flex items-center gap-2"><PackageCheck className="h-5 w-5 text-navy" />Fulfilment</CardTitle></CardHeader>
             <CardContent>
+              {order.shiprocketOrderId && <p className="mb-4 rounded-lg bg-blue-50 p-3 text-xs text-blue-900">Shiprocket order: {order.shiprocketOrderId}{order.shipmentId ? ` · Shipment ${order.shipmentId}` : ''}{order.shiprocketOrderId === 'pending' ? ' · Needs reconciliation' : ''}</p>}
+              <Button type="button" variant="outline" className="mb-4 w-full" onClick={createShipment} disabled={creatingShipment || Boolean(order.shiprocketOrderId) || !['confirmed', 'processing', 'packed'].includes(order.orderStatus)}><Truck className="mr-2 h-4 w-4" />{creatingShipment ? 'Contacting Shiprocket…' : order.shiprocketOrderId ? 'Shiprocket request recorded' : 'Create Shiprocket shipment'}</Button>
+              {order.shipmentId && order.shipmentId !== 'pending' && <Button type="button" variant="outline" className="mb-4 w-full" onClick={refreshTracking} disabled={refreshingTracking}>{refreshingTracking ? 'Refreshing…' : 'Refresh tracking from Shiprocket'}</Button>}
               <form onSubmit={saveOrder} className="space-y-4">
                 <div>
                   <Label htmlFor="orderStatus">Order status</Label>
@@ -165,6 +218,8 @@ export default function AdminOrderDetailPage() {
                     {orderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
                   </select>
                 </div>
+                {order.paymentMethod.toLowerCase() === 'cod' && form.paymentStatus === 'paid' && <label className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900"><input type="checkbox" checked={form.confirmCodCollected} onChange={(e) => setForm({ ...form, confirmCodCollected: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[#073B82]" /><span>Confirm cash was actually collected before marking this COD order paid.</span></label>}
+                <div><Label htmlFor="statusNote">Status update note (optional)</Label><Input id="statusNote" value={form.statusNote} onChange={(e) => setForm({ ...form, statusNote: e.target.value })} maxLength={300} /></div>
                 <div>
                   <Label htmlFor="paymentStatus">Payment status</Label>
                   <select id="paymentStatus" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2" value={form.paymentStatus} onChange={(e) => setForm({ ...form, paymentStatus: e.target.value })}>
@@ -176,7 +231,7 @@ export default function AdminOrderDetailPage() {
                 <div><Label htmlFor="trackingNumber">Tracking number</Label><Input id="trackingNumber" value={form.trackingNumber} onChange={(e) => setForm({ ...form, trackingNumber: e.target.value })} /></div>
                 <div><Label htmlFor="shipmentId">Shipment ID</Label><Input id="shipmentId" value={form.shipmentId} onChange={(e) => setForm({ ...form, shipmentId: e.target.value })} /></div>
                 <div><Label htmlFor="estimatedDelivery">Estimated delivery</Label><Input id="estimatedDelivery" type="date" value={form.estimatedDelivery} onChange={(e) => setForm({ ...form, estimatedDelivery: e.target.value })} /></div>
-                <Button type="submit" className="w-full" disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save changes'}</Button>
+                <Button type="submit" className="w-full" disabled={saving || (order.paymentMethod.toLowerCase() === 'cod' && form.paymentStatus === 'paid' && !form.confirmCodCollected)}><Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save changes'}</Button>
               </form>
             </CardContent>
           </Card>

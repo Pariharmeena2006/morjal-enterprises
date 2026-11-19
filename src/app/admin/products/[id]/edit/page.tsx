@@ -45,6 +45,7 @@ export default function EditProductPage() {
     shippingInfo: '',
     faq: '',
     videoUrl: '',
+    featured: false,
     isPublished: true,
   })
 
@@ -83,6 +84,7 @@ export default function EditProductPage() {
           shippingInfo: product.shippingInfo || '',
           faq: product.faq || '',
           videoUrl: product.videoUrl || '',
+          featured: product.featured ?? false,
           isPublished: product.isPublished ?? true,
         })
         setImages(product.images || [])
@@ -115,6 +117,8 @@ export default function EditProductPage() {
           sellingPrice: parseFloat(formData.sellingPrice),
           mrp: formData.mrp ? parseFloat(formData.mrp) : null,
           stockQuantity: parseInt(formData.stockQuantity),
+          featured: formData.featured,
+          isPublished: formData.isPublished,
           images,
         })
       })
@@ -283,6 +287,7 @@ export default function EditProductPage() {
                     value={formData.mrp}
                     onChange={handleInputChange}
                   />
+                  {Number(formData.mrp) > Number(formData.sellingPrice) && Number(formData.mrp) > 0 && <p className="mt-1 text-xs font-medium text-green-700">{Math.round(((Number(formData.mrp) - Number(formData.sellingPrice)) / Number(formData.mrp)) * 100)}% discount</p>}
                 </div>
                 <div>
                   <Label htmlFor="stockQuantity">Stock Quantity *</Label>
@@ -304,6 +309,11 @@ export default function EditProductPage() {
                   />
                   <span className="text-sm font-medium text-navy">Publish this product in the shop</span>
                 </label>
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="h-4 w-4 accent-[#073B82]" />
+                  <span className="text-sm font-medium text-navy">Feature this product on the homepage</span>
+                </label>
+                <p className="text-sm font-medium text-navy">Stock status: {Number(formData.stockQuantity) > 0 ? 'In stock' : 'Out of stock'}</p>
               </CardContent>
             </Card>
 

@@ -182,7 +182,7 @@ export default function NewVideoPage() {
                       {uploadingThumbnail ? 'Uploading...' : 'Click to upload'}
                     </p>
                     <p className="text-xs text-gray-500">
-                      PNG, JPG, WebP up to 5MB
+                      PNG, JPG, WebP up to 4MB
                     </p>
                   </label>
                 </div>
