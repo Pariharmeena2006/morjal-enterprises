@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(_request: Request, { params }: { params: { slug: string } }) {
   try {
-    const product = await prisma.product.findFirst({
-      where: { slug: params.slug, isPublished: true },
-      include: { images: { orderBy: { order: 'asc' } } },
-    })
+    const product = await getDb().orm.public.Product
+      .where({ slug: params.slug, isPublished: true })
+      .include('images', (images) => images.orderBy((i) => i.order.asc()))
+      .first()
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     return NextResponse.json(product)
   } catch (error) {

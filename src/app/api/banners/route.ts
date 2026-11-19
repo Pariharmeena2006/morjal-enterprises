@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const banners = await prisma.banner.findMany({
-      where: { isEnabled: true },
-      orderBy: { order: 'asc' }
-    })
+    const banners = await getDb().orm.public.Banner
+      .where({ isEnabled: true })
+      .orderBy((b) => b.order.asc())
+      .all()
 
     return NextResponse.json(banners)
   } catch (error) {

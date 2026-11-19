@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
 import { createShiprocketOrder } from '@/lib/shiprocket'
 
 type RequestedItem = { productId?: string; id?: string; quantity?: number }
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,18 +40,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A product quantity cannot exceed 10.' }, { status: 400 })
     }
 
-    const settings = await prisma.websiteSettings.findFirst()
+    const db = getDb()
+    const settings = await db.orm.public.WebsiteSettings.first()
     if (settings?.codEnabled === false) {
       return NextResponse.json({ error: 'Cash on Delivery is currently unavailable. Please contact us to place an order.' }, { status: 400 })
     }
     const productIds = Array.from(new Set(normalized.map((item) => item.productId)))
     const orderNumber = `MJ${Date.now().toString().slice(-8)}${Math.random().toString(36).slice(2, 5).toUpperCase()}`
 
-    const result = await prisma.$transaction(async (tx) => {
-      const products = await tx.product.findMany({
-        where: { id: { in: productIds }, isPublished: true },
-        include: { images: { orderBy: { order: 'asc' }, take: 1 } },
-      })
+    const result = await db.transaction(async (tx) => {
+      const products = await tx.orm.public.Product
+        .where((p) => p.id.in(productIds))
+        .where({ isPublished: true })
+        .include('images', (images) => images.orderBy((i) => i.order.asc()).limit(1))
+        .all()
       const productById = new Map(products.map((product) => [product.id, product]))
       if (products.length !== productIds.length) throw new Error('One or more items are no longer available.')
 
@@ -63,44 +67,37 @@ export async function POST(request: NextRequest) {
       })
 
       for (const { requested, product } of items) {
-        const changed = await tx.product.updateMany({
-          where: { id: product.id, stockQuantity: { gte: requested.quantity }, isPublished: true },
-          data: { stockQuantity: { decrement: requested.quantity } },
-        })
-        if (changed.count !== 1) throw new Error(`${product.name} stock changed. Please try again.`)
+        const changed = await tx.execute(
+          tx.raw.sql`UPDATE "public"."Product" SET "stockQuantity" = "stockQuantity" - ${requested.quantity} WHERE "id" = ${product.id} AND "isPublished" = true AND "stockQuantity" >= ${requested.quantity}`.affectedCount().build(),
+        )
+        if (changed.affectedRows !== 1) throw new Error(`${product.name} stock changed. Please try again.`)
       }
       for (const { product } of items) {
-        const updated = await tx.product.findUnique({ where: { id: product.id }, select: { stockQuantity: true } })
-        if (updated) await tx.product.update({ where: { id: product.id }, data: { isOutOfStock: updated.stockQuantity === 0 } })
+        const updated = await tx.orm.public.Product.select('stockQuantity').first({ id: product.id })
+        if (updated) await tx.orm.public.Product.where({ id: product.id }).update({ isOutOfStock: updated.stockQuantity === 0 })
       }
 
       const subtotal = items.reduce((sum, { requested, product }) => sum + product.sellingPrice * requested.quantity, 0)
       const freeShippingThreshold = settings?.freeShippingThreshold ?? 1000
       const shippingCharge = subtotal >= freeShippingThreshold ? 0 : 99
-      return tx.order.create({
-        data: {
+      return tx.orm.public.Order
+        .select('id', 'orderNumber', 'total')
+        .create({
           orderNumber,
           customerName: body.fullName.trim(), customerEmail: body.email?.trim() || null,
           customerPhone: body.phone.trim(), address: body.address.trim(), city: body.city.trim(),
           state: body.state.trim(), pinCode: body.pinCode.trim(), landmark: body.landmark?.trim() || null,
           orderNotes: body.orderNotes?.trim() || null, subtotal, shippingCharge, discount: 0,
           total: subtotal + shippingCharge, paymentMethod: 'cod', paymentStatus: 'pending', orderStatus: 'pending',
-          items: {
-            create: items.map(({ requested, product }) => ({
-              productId: product.id, productName: product.name, quantity: requested.quantity,
-              unitPrice: product.sellingPrice, totalPrice: product.sellingPrice * requested.quantity,
-            })),
-          },
-        },
-        select: { id: true, orderNumber: true, total: true },
-      })
+          items: (i) => i.create(items.map(({ requested, product }) => ({
+            productId: product.id, productName: product.name, quantity: requested.quantity,
+            unitPrice: product.sellingPrice, totalPrice: product.sellingPrice * requested.quantity,
+          }))),
+        })
     })
 
     // Create order in Shiprocket if enabled
-    const orderWithItems = await prisma.order.findUnique({
-      where: { id: result.id },
-      include: { items: true },
-    })
+    const orderWithItems = await db.orm.public.Order.include('items').first({ id: result.id })
 
     if (orderWithItems) {
       createShiprocketOrder(orderWithItems).catch((error) => {

@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: params.id },
-      include: { images: { orderBy: { order: 'asc' } } }
-    })
+    const product = await getDb().orm.public.Product
+      .include('images', (images) => images.orderBy((i) => i.order.asc()))
+      .first({ id: params.id })
 
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
@@ -35,11 +36,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(getAuthOptions())
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const current = await prisma.product.findUnique({ where: { id: params.id } })
+    const db = getDb()
+    const current = await db.orm.public.Product.first({ id: params.id })
     if (!current) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
     const sellingPrice = Number(body.sellingPrice)
@@ -64,9 +66,17 @@ export async function PUT(
     if (images && images.length > 5) {
       return NextResponse.json({ error: 'A product can have up to 5 photos' }, { status: 400 })
     }
-    const product = await prisma.product.update({
-      where: { id: params.id },
-      data: {
+
+    const product = await db.transaction(async (tx) => {
+      if (images) {
+        await tx.orm.public.ProductImage.where({ productId: params.id }).deleteAll()
+        if (images.length > 0) {
+          await tx.orm.public.ProductImage.createAll(
+            images.map((image) => ({ ...image, productId: params.id })),
+          )
+        }
+      }
+      await tx.orm.public.Product.where({ id: params.id }).update({
         name: body.name.trim(), slug: body.slug.trim(), sku: body.sku || null,
         shortDescription: body.shortDescription.trim(), description: body.description.trim(),
         brand: body.brand || null, sellingPrice,
@@ -80,9 +90,10 @@ export async function PUT(
         countryOfOrigin: body.countryOfOrigin || null, certifications: body.certifications || null,
         safetyInstructions: body.safetyInstructions || null, warranty: body.warranty || null,
         shippingInfo: body.shippingInfo || null, faq: body.faq || null,
-        ...(images ? { images: { deleteMany: {}, create: images } } : {}),
-      },
-      include: { images: { orderBy: { order: 'asc' } } },
+      })
+      return tx.orm.public.Product
+        .include('images', (i) => i.orderBy((x) => x.order.asc()))
+        .first({ id: params.id })
     })
     return NextResponse.json(product)
   } catch (error) {
@@ -96,9 +107,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(getAuthOptions())
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    await prisma.product.delete({ where: { id: params.id } })
+    await getDb().orm.public.Product.where({ id: params.id }).delete()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting product:', error)

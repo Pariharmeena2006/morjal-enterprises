@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getAuthOptions } from '@/lib/auth'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 const orderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 const paymentStatuses = ['pending', 'paid', 'failed', 'refunded']
 
 async function requireAdmin() {
-  return Boolean(await getServerSession(authOptions))
+  return Boolean(await getServerSession(getAuthOptions()))
 }
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
@@ -16,10 +18,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   }
 
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: params.id },
-      include: { items: true },
-    })
+    const order = await getDb().orm.public.Order.include('items').first({ id: params.id })
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     return NextResponse.json(order)
   } catch (error) {
@@ -35,7 +34,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   try {
     const body = await request.json()
-    const data: Record<string, unknown> = {}
+    const data: {
+      orderStatus?: string
+      paymentStatus?: string
+      trackingNumber?: string | null
+      courierName?: string | null
+      shipmentId?: string | null
+      estimatedDelivery?: Date | null
+    } = {}
 
     if (body.orderStatus !== undefined) {
       if (!orderStatuses.includes(body.orderStatus)) {
@@ -63,11 +69,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: 'No valid fields supplied' }, { status: 400 })
     }
 
-    const order = await prisma.order.update({
-      where: { id: params.id },
-      data,
-      include: { items: true },
-    })
+    const db = getDb()
+    await db.orm.public.Order.where({ id: params.id }).update(data)
+    const order = await db.orm.public.Order.include('items').first({ id: params.id })
     return NextResponse.json(order)
   } catch (error) {
     console.error('Error updating order:', error)

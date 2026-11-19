@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const news = await prisma.news.findUnique({
-      where: { id: params.id },
-    })
+    const news = await getDb().orm.public.News.first({ id: params.id })
     if (!news) {
       return NextResponse.json({ error: 'News not found' }, { status: 404 })
     }
@@ -21,9 +21,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const body = await request.json()
     const { title, slug, excerpt, content, imageUrl, authorName, authorTitle, published } = body
 
-    const news = await prisma.news.update({
-      where: { id: params.id },
-      data: {
+    const news = await getDb().orm.public.News
+      .where({ id: params.id })
+      .update({
         title,
         slug,
         excerpt,
@@ -32,8 +32,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         authorName,
         authorTitle,
         published,
-      },
-    })
+      })
 
     return NextResponse.json(news)
   } catch (error) {
@@ -44,9 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await prisma.news.delete({
-      where: { id: params.id },
-    })
+    await getDb().orm.public.News.where({ id: params.id }).delete()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting news:', error)

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getAuthOptions } from '@/lib/auth'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 const editableFields = [
   'businessName', 'contactPhone', 'contactEmail', 'contactAddress', 'whatsappNumber',
@@ -12,11 +14,11 @@ const editableFields = [
 ] as const
 
 export async function GET() {
-  if (!(await getServerSession(authOptions))) {
+  if (!(await getServerSession(getAuthOptions()))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const settings = await prisma.websiteSettings.findFirst()
+    const settings = await getDb().orm.public.WebsiteSettings.first()
     return NextResponse.json(settings || {})
   } catch (error) {
     console.error('Error loading settings:', error)
@@ -25,14 +27,45 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  if (!(await getServerSession(authOptions))) {
+  if (!(await getServerSession(getAuthOptions()))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
     const body = await request.json()
-    const data: Record<string, unknown> = {}
+    const data: {
+      businessName?: string
+      contactPhone?: string | null
+      contactEmail?: string | null
+      contactAddress?: string | null
+      whatsappNumber?: string | null
+      socialFacebook?: string | null
+      socialInstagram?: string | null
+      socialTwitter?: string | null
+      socialLinkedIn?: string | null
+      ownerName?: string | null
+      ownerTitle?: string | null
+      ownerBio?: string | null
+      ownerImageUrl?: string | null
+      ownerStory?: string | null
+      ownerAchievements?: string | null
+      announcementMessage?: string | null
+      shippingPolicy?: string | null
+      returnPolicy?: string | null
+      cancellationPolicy?: string | null
+      privacyPolicy?: string | null
+      termsAndConditions?: string | null
+      refundPolicy?: string | null
+      freeShippingThreshold?: number | null
+      codEnabled?: boolean
+    } = {}
     for (const field of editableFields) {
-      if (body[field] !== undefined) data[field] = body[field] ? String(body[field]).trim() : null
+      if (body[field] === undefined) continue
+      if (field === 'businessName') {
+        // businessName is NOT NULL: keep the stored name when the form sends an empty one.
+        if (body[field]) data.businessName = String(body[field]).trim()
+      } else {
+        data[field] = body[field] ? String(body[field]).trim() : null
+      }
     }
     if (body.freeShippingThreshold !== undefined) {
       const threshold = Number(body.freeShippingThreshold)
@@ -43,10 +76,11 @@ export async function PUT(request: NextRequest) {
     }
     if (body.codEnabled !== undefined) data.codEnabled = Boolean(body.codEnabled)
 
-    const existing = await prisma.websiteSettings.findFirst()
+    const db = getDb()
+    const existing = await db.orm.public.WebsiteSettings.first()
     const settings = existing
-      ? await prisma.websiteSettings.update({ where: { id: existing.id }, data })
-      : await prisma.websiteSettings.create({ data })
+      ? await db.orm.public.WebsiteSettings.where({ id: existing.id }).update(data)
+      : await db.orm.public.WebsiteSettings.create(data)
     return NextResponse.json(settings)
   } catch (error) {
     console.error('Error saving settings:', error)

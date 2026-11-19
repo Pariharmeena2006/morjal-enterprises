@@ -1,40 +1,40 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getAuthOptions } from '@/lib/auth'
+import { getDb } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Play } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
 
+export const dynamic = 'force-dynamic'
+
 async function getVideos() {
-  const videos = await prisma.video.findMany({
-    orderBy: { order: 'asc' }
-  })
+  const videos = await getDb().orm.public.Video
+    .orderBy((v) => v.order.asc())
+    .all()
   return JSON.parse(JSON.stringify(videos))
 }
 
 async function deleteVideo(id: string) {
   'use server'
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/admin/login')
-  await prisma.video.delete({
-    where: { id }
-  })
+  await getDb().orm.public.Video.where({ id }).delete()
 }
 
 async function setVideoEnabled(id: string, isEnabled: boolean) {
   'use server'
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/admin/login')
-  await prisma.video.update({ where: { id }, data: { isEnabled } })
+  await getDb().orm.public.Video.where({ id }).update({ isEnabled })
   revalidatePath('/admin/videos')
   revalidatePath('/')
 }
 
 export default async function AdminVideosPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   
   if (!session) {
     redirect('/admin/login')

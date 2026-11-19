@@ -1,14 +1,17 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getAuthOptions } from '@/lib/auth'
+import { getDb } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShoppingBag, Package, DollarSign, Clock, Users, AlertTriangle, Video } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import AdminSignOut from '@/components/admin-signout'
 
+export const dynamic = 'force-dynamic'
+
 async function getDashboardStats() {
+  const db = getDb()
   const [
     totalOrders,
     totalProducts,
@@ -18,28 +21,31 @@ async function getDashboardStats() {
     lowStockProducts,
     recentOrders
   ] = await Promise.all([
-    prisma.order.count(),
-    prisma.product.count(),
-    prisma.order.count({ where: { orderStatus: 'pending' } }),
-    prisma.order.count({ where: { paymentStatus: 'paid' } }),
-    prisma.order.count({ where: { paymentMethod: 'cod' } }),
-    prisma.product.count({ where: { stockQuantity: { lte: 5 }, isOutOfStock: false } }),
-    prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { items: true }
-    })
+    db.orm.public.Order.aggregate((a) => ({ n: a.count() })).then((r) => r.n),
+    db.orm.public.Product.aggregate((a) => ({ n: a.count() })).then((r) => r.n),
+    db.orm.public.Order.where({ orderStatus: 'pending' }).aggregate((a) => ({ n: a.count() })).then((r) => r.n),
+    db.orm.public.Order.where({ paymentStatus: 'paid' }).aggregate((a) => ({ n: a.count() })).then((r) => r.n),
+    db.orm.public.Order.where({ paymentMethod: 'cod' }).aggregate((a) => ({ n: a.count() })).then((r) => r.n),
+    db.orm.public.Product
+      .where((p) => p.stockQuantity.lte(5))
+      .where({ isOutOfStock: false })
+      .aggregate((a) => ({ n: a.count() }))
+      .then((r) => r.n),
+    db.orm.public.Order
+      .include('items')
+      .orderBy((o) => o.createdAt.desc())
+      .limit(5)
+      .all()
   ])
 
-  const totalSales = await prisma.order.aggregate({
-    where: { paymentStatus: 'paid' },
-    _sum: { total: true }
-  })
+  const totalSales = await db.orm.public.Order
+    .where({ paymentStatus: 'paid' })
+    .aggregate((a) => ({ total: a.sum('total') }))
 
   return {
     totalOrders,
     totalProducts,
-    totalSales: totalSales._sum.total || 0,
+    totalSales: totalSales.total ?? 0,
     pendingOrders,
     paidOrders,
     codOrders,
@@ -49,7 +55,7 @@ async function getDashboardStats() {
 }
 
 export default async function AdminDashboard() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   
   if (!session) {
     redirect('/admin/login')

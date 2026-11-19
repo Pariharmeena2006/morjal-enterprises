@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const news = await prisma.news.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
+    const news = await getDb().orm.public.News
+      .orderBy((n) => n.createdAt.desc())
+      .all()
     return NextResponse.json(news)
   } catch (error) {
     console.error('Error fetching news:', error)
@@ -22,17 +24,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title, slug, and content are required' }, { status: 400 })
     }
 
-    const news = await prisma.news.create({
-      data: {
-        title,
-        slug,
-        excerpt,
-        content,
-        imageUrl,
-        authorName,
-        authorTitle,
-        published: published ?? true,
-      },
+    const news = await getDb().orm.public.News.create({
+      title,
+      slug,
+      excerpt,
+      content,
+      imageUrl,
+      authorName,
+      authorTitle,
+      published: published ?? true,
     })
 
     return NextResponse.json(news, { status: 201 })

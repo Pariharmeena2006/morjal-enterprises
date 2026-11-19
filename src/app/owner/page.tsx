@@ -1,16 +1,17 @@
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { MessageCircle, ShoppingBag } from 'lucide-react'
 import Image from 'next/image'
 
+export const dynamic = 'force-dynamic'
+
 async function getWebsiteSettings() {
-  let settings = await prisma.websiteSettings.findFirst()
+  const db = getDb()
+  let settings = await db.orm.public.WebsiteSettings.first()
   if (!settings) {
-    settings = await prisma.websiteSettings.create({
-      data: {}
-    })
+    settings = await db.orm.public.WebsiteSettings.create({})
   }
   return JSON.parse(JSON.stringify(settings))
 }

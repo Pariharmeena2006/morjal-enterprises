@@ -1,40 +1,40 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getAuthOptions } from '@/lib/auth'
+import { getDb } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Eye } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
 
+export const dynamic = 'force-dynamic'
+
 async function getBanners() {
-  const banners = await prisma.banner.findMany({
-    orderBy: { order: 'asc' }
-  })
+  const banners = await getDb().orm.public.Banner
+    .orderBy((b) => b.order.asc())
+    .all()
   return JSON.parse(JSON.stringify(banners))
 }
 
 async function deleteBanner(id: string) {
   'use server'
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/admin/login')
-  await prisma.banner.delete({
-    where: { id }
-  })
+  await getDb().orm.public.Banner.where({ id }).delete()
 }
 
 async function setBannerEnabled(id: string, isEnabled: boolean) {
   'use server'
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/admin/login')
-  await prisma.banner.update({ where: { id }, data: { isEnabled } })
+  await getDb().orm.public.Banner.where({ id }).update({ isEnabled })
   revalidatePath('/admin/banners')
   revalidatePath('/')
 }
 
 export default async function AdminBannersPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   
   if (!session) {
     redirect('/admin/login')

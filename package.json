@@ -10,11 +10,15 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
-    "@prisma/client": "^5.18.0",
+    "arktype": "^2.1.20",
+    "@prisma/composer": "0.38.0",
+    "@prisma/composer-prisma-cloud": "0.38.0",
+    "@prisma/orm-postgres": "8.0.0-rc.23",
     "autoprefixer": "^10.6.1",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "effect": "4.0.5",
     "embla-carousel-react": "^8.1.8",
     "framer-motion": "^14.3.0",
     "lucide-react": "^0.424.0",
@@ -25,6 +29,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.2",
     "tailwind-merge": "^2.4.0",
+    "temporal-polyfill": "^1.0.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -35,8 +40,15 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",
     "postcss": "^8.4.41",
-    "prisma": "^5.18.0",
+    "prisma": "8.0.0-rc.33",
     "tailwindcss": "^3.4.9",
     "typescript": "^5.5.4"
+  },
+  "overrides": {
+    "effect": "4.0.5",
+    "@effect/vitest": "4.0.5",
+    "@effect/platform-bun": "4.0.5",
+    "@effect/platform-node": "4.0.5",
+    "@effect/platform-node-shared": "4.0.5"
   }
 }

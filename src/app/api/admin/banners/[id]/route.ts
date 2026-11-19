@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const banner = await prisma.banner.findUnique({
-      where: { id: params.id }
-    })
+    const banner = await getDb().orm.public.Banner.first({ id: params.id })
 
     if (!banner) {
       return NextResponse.json({ error: 'Banner not found' }, { status: 404 })
@@ -34,7 +34,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(getAuthOptions())
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
@@ -46,15 +46,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Display order must be a non-negative whole number' }, { status: 400 })
     }
 
-    const banner = await prisma.banner.update({
-      where: { id: params.id },
-      data: {
+    const banner = await getDb().orm.public.Banner
+      .where({ id: params.id })
+      .update({
         title: body.title.trim(), description: body.description || null,
         buttonText: body.buttonText || null, buttonUrl: body.buttonUrl || null,
         desktopImageUrl: body.desktopImageUrl || null, mobileImageUrl: body.mobileImageUrl || null,
         order, ...(typeof body.isEnabled === 'boolean' ? { isEnabled: body.isEnabled } : {}),
-      },
-    })
+      })
     return NextResponse.json(banner)
   } catch (error) {
     console.error('Error updating banner:', error)

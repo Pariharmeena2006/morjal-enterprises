@@ -2,12 +2,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, CalendarDays, Newspaper, UserRound } from 'lucide-react'
 import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export default async function NewsArticlePage({ params }: { params: { slug: string } }) {
-  const article = await prisma.news.findFirst({
-    where: { slug: params.slug, published: true },
-  })
+  const article = await getDb().orm.public.News
+    .where({ slug: params.slug, published: true })
+    .first()
 
   if (!article) notFound()
 

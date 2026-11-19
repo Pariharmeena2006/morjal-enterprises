@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions } from '@/lib/auth'
 import { generateSlug } from '@/lib/utils'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -31,44 +33,46 @@ export async function POST(request: NextRequest) {
     if (images.length > 5) {
       return NextResponse.json({ error: 'A product can have up to 5 photos' }, { status: 400 })
     }
-    
-    const product = await prisma.product.create({
-      data: {
-        name: body.name,
-        slug,
-        sku: body.sku || null,
-        shortDescription: body.shortDescription,
-        description: body.description,
-        brand: body.brand,
-        sellingPrice,
-        mrp: body.mrp === '' || body.mrp == null ? null : Number(body.mrp),
-        stockQuantity,
-        isOutOfStock: stockQuantity === 0,
-        category: body.category,
-        features: body.features,
-        specifications: body.specifications,
-        applications: body.applications,
-        material: body.material,
-        dimensions: body.dimensions,
-        weight: body.weight,
-        packageDimensions: body.packageDimensions,
-        manufacturer: body.manufacturer,
-        countryOfOrigin: body.countryOfOrigin,
-        certifications: body.certifications,
-        safetyInstructions: body.safetyInstructions,
-        warranty: body.warranty,
-        shippingInfo: body.shippingInfo,
-        faq: body.faq,
-        isPublished: body.isPublished ?? true,
-        images: images.length > 0 ? {
-          create: images.map((image: { url: string; alt: string | null }, index: number) => ({
+
+    const productFields = {
+      name: body.name,
+      slug,
+      sku: body.sku || null,
+      shortDescription: body.shortDescription,
+      description: body.description,
+      brand: body.brand,
+      sellingPrice,
+      mrp: body.mrp === '' || body.mrp == null ? null : Number(body.mrp),
+      stockQuantity,
+      isOutOfStock: stockQuantity === 0,
+      category: body.category,
+      features: body.features,
+      specifications: body.specifications,
+      applications: body.applications,
+      material: body.material,
+      dimensions: body.dimensions,
+      weight: body.weight,
+      packageDimensions: body.packageDimensions,
+      manufacturer: body.manufacturer,
+      countryOfOrigin: body.countryOfOrigin,
+      certifications: body.certifications,
+      safetyInstructions: body.safetyInstructions,
+      warranty: body.warranty,
+      shippingInfo: body.shippingInfo,
+      faq: body.faq,
+      isPublished: body.isPublished ?? true,
+    }
+
+    const product = images.length > 0
+      ? await getDb().orm.public.Product.create({
+          ...productFields,
+          images: (i) => i.create(images.map((image: { url: string; alt: string | null }, index: number) => ({
             url: image.url,
             alt: image.alt,
             order: index,
-          }))
-        } : undefined,
-      }
-    })
+          }))),
+        })
+      : await getDb().orm.public.Product.create(productFields)
 
     return NextResponse.json(product)
   } catch (error) {
@@ -79,34 +83,33 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const { id, images, ...productData } = body
+    const db = getDb()
 
     // Delete existing images
-    await prisma.productImage.deleteMany({
-      where: { productId: id }
-    })
+    await db.orm.public.ProductImage.where({ productId: id }).deleteAll()
 
     // Update product with new images
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        ...productData,
-        images: images && images.length > 0 ? {
-          create: images.map((img: any, index: number) => ({
-            url: img.url,
-            alt: img.alt,
-            order: index,
-          }))
-        } : undefined,
-      }
+    const product = await db.orm.public.Product.where({ id }).update({
+      ...productData,
     })
+    if (images && images.length > 0) {
+      await db.orm.public.ProductImage.createAll(
+        images.map((img: { url: string; alt: string | null }, index: number) => ({
+          url: img.url,
+          alt: img.alt,
+          order: index,
+          productId: id,
+        }))
+      )
+    }
 
     return NextResponse.json(product)
   } catch (error) {
@@ -117,8 +120,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -130,9 +133,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
     }
 
-    await prisma.product.delete({
-      where: { id }
-    })
+    await getDb().orm.public.Product.where({ id }).delete()
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -143,16 +144,16 @@ export async function DELETE(request: NextRequest) {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const products = await prisma.product.findMany({
-      include: { images: true },
-      orderBy: { createdAt: 'desc' }
-    })
+    const products = await getDb().orm.public.Product
+      .include('images')
+      .orderBy((p) => p.createdAt.desc())
+      .all()
 
     return NextResponse.json(products)
   } catch (error) {

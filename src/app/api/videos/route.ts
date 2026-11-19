@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const videos = await prisma.video.findMany({
-      where: { isEnabled: true },
-      orderBy: { order: 'asc' }
-    })
+    const videos = await getDb().orm.public.Video
+      .where({ isEnabled: true })
+      .orderBy((v) => v.order.asc())
+      .all()
 
     return NextResponse.json(videos)
   } catch (error) {

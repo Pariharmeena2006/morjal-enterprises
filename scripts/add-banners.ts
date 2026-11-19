@@ -1,14 +1,18 @@
-import { PrismaClient } from '@prisma/client'
+import postgres from '@prisma/orm-postgres/runtime'
+import { contractFromJson } from '@prisma/orm-postgres/static'
+import type { Contract } from '../src/prisma/contract'
+import contractJson from '../src/prisma/contract.json'
 
-const prisma = new PrismaClient()
+const db = postgres({
+  contract: contractFromJson<Contract>(contractJson),
+  url: process.env['DATABASE_URL']!,
+})
 
 async function main() {
   console.log('Adding banners to database...')
 
   // Banner 1
-  await prisma.banner.upsert({
-    where: { id: 'banner-1' },
-    update: {},
+  await db.orm.public.Banner.where({ id: 'banner-1' }).upsert({
     create: {
       id: 'banner-1',
       title: 'Premium Electrical Safety Products',
@@ -20,12 +24,11 @@ async function main() {
       order: 1,
       isEnabled: true,
     },
+    update: {},
   })
 
   // Banner 2
-  await prisma.banner.upsert({
-    where: { id: 'banner-2' },
-    update: {},
+  await db.orm.public.Banner.where({ id: 'banner-2' }).upsert({
     create: {
       id: 'banner-2',
       title: 'Safety First - Quality Guaranteed',
@@ -37,6 +40,7 @@ async function main() {
       order: 2,
       isEnabled: true,
     },
+    update: {},
   })
 
   console.log('Banners added successfully!')
@@ -47,6 +51,4 @@ main()
     console.error(e)
     process.exit(1)
   })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  .finally(() => db.close())

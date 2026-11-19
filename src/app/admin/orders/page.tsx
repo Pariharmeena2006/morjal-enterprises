@@ -1,22 +1,24 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getAuthOptions } from '@/lib/auth'
+import { getDb } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Eye, Package } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 async function getOrders() {
-  const orders = await prisma.order.findMany({
-    include: { items: true },
-    orderBy: { createdAt: 'desc' }
-  })
+  const orders = await getDb().orm.public.Order
+    .include('items')
+    .orderBy((o) => o.createdAt.desc())
+    .all()
   return JSON.parse(JSON.stringify(orders))
 }
 
 export default async function AdminOrdersPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   
   if (!session) {
     redirect('/admin/login')

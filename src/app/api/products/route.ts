@@ -1,17 +1,15 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const products = await prisma.product.findMany({
-      where: { isPublished: true },
-      include: { 
-        images: true 
-      },
-      orderBy: { 
-        createdAt: 'desc' 
-      }
-    })
+    const products = await getDb().orm.public.Product
+      .where({ isPublished: true })
+      .include('images')
+      .orderBy((p) => p.createdAt.desc())
+      .all()
 
     return NextResponse.json(products)
   } catch (error) {
@@ -19,3 +17,4 @@ export async function GET() {
     return NextResponse.json([], { status: 500 })
   }
 }
+

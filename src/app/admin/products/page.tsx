@@ -1,31 +1,31 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getAuthOptions } from '@/lib/auth'
+import { getDb } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Eye } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 async function getProducts() {
-  const products = await prisma.product.findMany({
-    include: { images: true },
-    orderBy: { createdAt: 'desc' }
-  })
+  const products = await getDb().orm.public.Product
+    .include('images')
+    .orderBy((p) => p.createdAt.desc())
+    .all()
   return JSON.parse(JSON.stringify(products))
 }
 
 async function deleteProduct(id: string) {
   'use server'
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   if (!session) redirect('/admin/login')
-  await prisma.product.delete({
-    where: { id }
-  })
+  await getDb().orm.public.Product.where({ id }).delete()
 }
 
 export default async function AdminProductsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(getAuthOptions())
   
   if (!session) {
     redirect('/admin/login')

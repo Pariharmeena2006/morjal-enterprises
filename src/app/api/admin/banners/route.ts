@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthOptions } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -19,18 +21,16 @@ export async function POST(request: NextRequest) {
     if (!Number.isInteger(order) || order < 0) {
       return NextResponse.json({ error: 'Display order must be a non-negative whole number' }, { status: 400 })
     }
-    
-    const banner = await prisma.banner.create({
-      data: {
-        title: body.title.trim(),
-        description: body.description || null,
-        buttonText: body.buttonText || null,
-        buttonUrl: body.buttonUrl || null,
-        desktopImageUrl: body.desktopImageUrl || null,
-        mobileImageUrl: body.mobileImageUrl || null,
-        order,
-        isEnabled: body.isEnabled ?? true,
-      }
+
+    const banner = await getDb().orm.public.Banner.create({
+      title: body.title.trim(),
+      description: body.description || null,
+      buttonText: body.buttonText || null,
+      buttonUrl: body.buttonUrl || null,
+      desktopImageUrl: body.desktopImageUrl || null,
+      mobileImageUrl: body.mobileImageUrl || null,
+      order,
+      isEnabled: body.isEnabled ?? true,
     })
 
     return NextResponse.json(banner)
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -51,10 +51,9 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, ...bannerData } = body
 
-    const banner = await prisma.banner.update({
-      where: { id },
-      data: bannerData
-    })
+    const banner = await getDb().orm.public.Banner
+      .where({ id })
+      .update(bannerData)
 
     return NextResponse.json(banner)
   } catch (error) {
@@ -65,8 +64,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -78,9 +77,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Banner ID required' }, { status: 400 })
     }
 
-    await prisma.banner.delete({
-      where: { id }
-    })
+    await getDb().orm.public.Banner.where({ id }).delete()
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -91,15 +88,15 @@ export async function DELETE(request: NextRequest) {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(getAuthOptions())
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const banners = await prisma.banner.findMany({
-      orderBy: { order: 'asc' }
-    })
+    const banners = await getDb().orm.public.Banner
+      .orderBy((b) => b.order.asc())
+      .all()
 
     return NextResponse.json(banners)
   } catch (error) {

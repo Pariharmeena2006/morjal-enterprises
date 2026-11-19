@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { getDb } from '@/lib/prisma'
 
 interface ShiprocketOrderItem {
   name: string
@@ -52,7 +52,7 @@ interface ShiprocketOrderData {
 
 export async function createShiprocketOrder(orderData: any) {
   try {
-    const settings = await prisma.websiteSettings.findFirst()
+    const settings = await getDb().orm.public.WebsiteSettings.first()
     
     if (!settings?.shiprocketEnabled || !settings.shiprocketEmail || !settings.shiprocketApiKey) {
       console.log('Shiprocket not configured')
@@ -155,7 +155,7 @@ export async function createShiprocketOrder(orderData: any) {
 
 export async function getShiprocketTracking(orderId: string) {
   try {
-    const settings = await prisma.websiteSettings.findFirst()
+    const settings = await getDb().orm.public.WebsiteSettings.first()
     
     if (!settings?.shiprocketEnabled || !settings.shiprocketEmail || !settings.shiprocketApiKey) {
       return null
