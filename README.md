@@ -14,14 +14,14 @@ A complete, production-ready e-commerce website for MORJAL Enterprises, built wi
 - **Authentication**: NextAuth-based admin authentication
 - **Responsive Design**: Mobile-first, responsive across all devices
 - **SEO Optimized**: Meta tags, structured data ready
-- **Database**: SQLite with Prisma ORM (easily switchable to PostgreSQL)
+- **Database**: PostgreSQL with Prisma ORM
 
 ## Technology Stack
 
 - **Framework**: Next.js 14 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **Database**: SQLite (Prisma ORM)
+- **Database**: PostgreSQL / Prisma Postgres (Prisma ORM)
 - **Authentication**: NextAuth.js
 - **Payment**: Razorpay (integration ready)
 - **Icons**: Lucide React
@@ -49,9 +49,9 @@ A complete, production-ready e-commerce website for MORJAL Enterprises, built wi
    cp .env.example .env
    ```
    
-   Edit `.env` and add the following variables:
+   Edit `.env` (and `.env.local` if present) and add the following variables. Use a newly rotated Prisma Postgres connection string and keep the URL out of source control:
    ```env
-   DATABASE_URL="file:./dev.db"
+   MORJAL_DATABASE_URL="postgres://USERNAME:PASSWORD@db.prisma.io:5432/postgres?sslmode=require"
    NEXTAUTH_SECRET="your-secret-key-here"
    NEXTAUTH_URL="http://localhost:3000"
    
@@ -65,11 +65,12 @@ A complete, production-ready e-commerce website for MORJAL Enterprises, built wi
    SHIPROCKET_PASSWORD="your-shiprocket-password"
    ```
 
-4. **Set up the database**
+4. **Generate Prisma Client**
    ```bash
-   npx prisma migrate dev --name init
    npx prisma generate
    ```
+
+   The checked-in migration history was created for SQLite, while the current schema uses PostgreSQL. Do not run `prisma migrate deploy` against production until a PostgreSQL migration plan has been reviewed; first confirm the target Prisma Postgres project/branch and inspect its existing schema without applying changes.
 
 5. **Create the first admin account**
    
@@ -214,15 +215,12 @@ Currently, images are stored as URLs in the database. For production:
 3. Add environment variables in Vercel dashboard
 4. Deploy
 
-For production database:
-- Use PostgreSQL instead of SQLite
-- Update `DATABASE_URL` in production
-- Run `npx prisma migrate deploy`
+For production, set `MORJAL_DATABASE_URL` in Vercel to the connection string for the intended Prisma Postgres **production branch**. Verify the project and branch in Prisma Console first. The credential previously shared in chat must be rotated before it is used. Do not deploy the existing SQLite migration files to PostgreSQL.
 
 ### Environment Variables for Production
 
 Required environment variables:
-- `DATABASE_URL` (PostgreSQL connection string)
+- `MORJAL_DATABASE_URL` (PostgreSQL connection string for the intended production branch)
 - `NEXTAUTH_SECRET` (generate a secure random string)
 - `NEXTAUTH_URL` (your production domain)
 - `RAZORPAY_KEY_ID`

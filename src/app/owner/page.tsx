@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { MessageCircle, ShoppingBag } from 'lucide-react'
 import Image from 'next/image'
 
+export const dynamic = 'force-dynamic'
+
 async function getWebsiteSettings() {
   let settings = await prisma.websiteSettings.findFirst()
   if (!settings) {

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const settings = await prisma.websiteSettings.findFirst({
@@ -13,6 +15,6 @@ export async function GET() {
     return NextResponse.json(settings || { businessName: 'MORJAL Enterprises', freeShippingThreshold: 1000, codEnabled: true })
   } catch (error) {
     console.error('Error loading storefront settings:', error)
-    return NextResponse.json({ businessName: 'MORJAL Enterprises', freeShippingThreshold: 1000, codEnabled: true })
+    return NextResponse.json({ error: 'Failed to load storefront settings' }, { status: 500 })
   }
 }
