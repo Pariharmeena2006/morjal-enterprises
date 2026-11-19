@@ -65,6 +65,7 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(true)
+  const [productError, setProductError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -77,7 +78,13 @@ export default function Home() {
 
       if (productResponse.status === 'fulfilled' && productResponse.value.ok) {
         const data = await productResponse.value.json()
-        if (active && Array.isArray(data)) setProducts(data)
+        if (active && Array.isArray(data)) {
+          setProducts(data)
+        } else if (active) {
+          setProductError('Products could not be loaded. Please try again later.')
+        }
+      } else if (active) {
+        setProductError('Products could not be loaded. Please try again later.')
       }
       if (bannerResponse.status === 'fulfilled' && bannerResponse.value.ok) {
         const data = await bannerResponse.value.json()
@@ -88,8 +95,9 @@ export default function Home() {
       if (active) setLoading(false)
     }
 
-    load().catch((error) => {
-      console.error('Unable to load homepage content:', error)
+    load().catch(() => {
+      console.error('Unable to load homepage content')
+      if (active) setProductError('Products could not be loaded. Please try again later.')
       if (active) setLoading(false)
     })
     return () => { active = false }
@@ -185,6 +193,8 @@ export default function Home() {
           </div>
           {loading ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="home-product-skeleton" />)}</div>
+          ) : productError ? (
+            <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-6 text-center text-sm text-red-800">{productError}</p>
           ) : products.length ? (
             <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:thin] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
               {products.slice(0, 3).map((product) => (

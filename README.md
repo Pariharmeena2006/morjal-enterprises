@@ -72,18 +72,14 @@ A complete, production-ready e-commerce website for MORJAL Enterprises, built wi
 
    The checked-in migration history was created for SQLite, while the current schema uses PostgreSQL. Do not run `prisma migrate deploy` against production until a PostgreSQL migration plan has been reviewed; first confirm the target Prisma Postgres project/branch and inspect its existing schema without applying changes.
 
-5. **Create the first admin account**
-   
-   Run the seed script to create an admin user:
+5. **Create the first admin account (only if needed)**
+
+   Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` securely in your local environment. `ADMIN_NAME` is optional. Then run:
    ```bash
    node scripts/seed-admin.js
    ```
-   
-   This will create an admin user with:
-   - Email: admin@morjal.com
-   - Password: admin123
-   
-   **Important**: Change the password after first login!
+
+   The script never prints the password and does not change an existing admin account. Confirm that the local `MORJAL_DATABASE_URL` points to the intended database before running it.
 
 6. **Start the development server**
    ```bash
@@ -129,10 +125,6 @@ MORJAL3/
 ## Admin Panel
 
 Access the admin panel at `/admin/login`
-
-Default credentials (after running seed script):
-- Email: admin@morjal.com
-- Password: admin123
 
 ### Admin Features
 

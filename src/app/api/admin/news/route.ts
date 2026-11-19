@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+async function isAdminAuthenticated() {
+  return Boolean(await getServerSession(authOptions))
+}
+
 export async function GET() {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const news = await prisma.news.findMany({
       orderBy: { createdAt: 'desc' },
@@ -14,6 +24,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const { title, slug, excerpt, content, imageUrl, authorName, authorTitle, published } = body

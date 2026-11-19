@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,12 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('error')) {
+      setError('Sign-in could not be completed. Please check your credentials and try again.')
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -29,13 +35,14 @@ export default function AdminLoginPage() {
         redirect: false,
       })
 
-      if (result?.error) {
+      if (!result?.ok || result.error) {
         setError('Invalid email or password')
-      } else {
-        router.push('/admin')
-        router.refresh()
+        return
       }
-    } catch (error) {
+
+      router.replace('/admin')
+      router.refresh()
+    } catch {
       setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
@@ -64,6 +71,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -80,6 +88,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"

@@ -45,7 +45,7 @@ export default function ProductsPage() {
         if (!response.ok) throw new Error('We could not load products right now.')
         const data: unknown = await response.json()
         if (!Array.isArray(data)) throw new Error('The product list could not be read.')
-        if (!cancelled) setProducts((data as Product[]).slice(0, 3))
+        if (!cancelled) setProducts(data as Product[])
       } catch (error) {
         if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Something went wrong while loading products.')
       } finally {
