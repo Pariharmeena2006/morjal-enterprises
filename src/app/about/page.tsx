@@ -63,7 +63,7 @@ export default function AboutPage() {
           </div>
           <div className="space-y-5 text-base leading-8 text-gray-600 sm:text-lg">
             <p>
-              MORJAL Enterprises was founded on a simple belief: every worker deserves access to reliable safety equipment. From our home in Kota, Rajasthan, we serve businesses and professionals looking for practical electrical safety solutions.
+              MORJAL Enterprises was founded on a simple belief: every worker deserves access to reliable safety equipment. From our home in Kaprain, Bundi, Rajasthan – 323301, India, we serve businesses and professionals looking for practical electrical safety solutions.
             </p>
             <p>
               Choosing protective equipment can be a serious responsibility. We bring together a carefully selected range of products and helpful support, so customers can make informed choices for their workplaces.

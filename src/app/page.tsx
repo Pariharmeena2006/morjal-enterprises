@@ -141,7 +141,7 @@ export default function Home() {
       <section className="home-hero-wrap px-3 pt-3 sm:px-5 sm:pt-5 lg:px-8 lg:pt-8">
         <div className="home-hero container mx-auto grid overflow-hidden rounded-[1.75rem] lg:min-h-[560px] lg:grid-cols-[1.02fr_0.98fr]">
           <div className="home-hero-copy relative z-10 flex flex-col justify-center px-4 py-10 sm:px-8 sm:py-12 md:px-10 md:py-16 lg:px-14 lg:py-20">
-            <span className="home-hero-kicker text-xs sm:text-sm"><span className="home-kicker-dot" />MORJAL ENTERPRISES · KOTA, INDIA</span>
+            <span className="home-hero-kicker text-xs sm:text-sm"><span className="home-kicker-dot" />MORJAL ENTERPRISES · BUNDI, INDIA</span>
             <h1 className="mt-5 max-w-2xl text-3xl font-bold leading-[1.12] tracking-[-0.025em] text-white sm:text-4xl sm:leading-[1.12] lg:text-[3.8rem]">
               <span className="block">{homeSettings.homeHeroFirstLine}</span>
               <span className="mt-1 block text-gold sm:mt-2">{homeSettings.homeHeroSecondLine}</span>
@@ -196,7 +196,7 @@ export default function Home() {
               Talk to our team <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Link>
             <div className="mt-6 flex items-center gap-3 border-t border-blue-200 pt-4 text-[10px] font-medium text-gray-500 sm:mt-8 sm:pt-5 sm:text-xs">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-[#BA8A24] sm:h-5 sm:w-5" /> MORJAL Enterprises · Kota, Rajasthan
+              <ShieldCheck className="h-4 w-4 shrink-0 text-[#BA8A24] sm:h-5 sm:w-5" /> MORJAL Enterprises · Kaprain, Bundi, Rajasthan
             </div>
           </div>
 
@@ -250,7 +250,7 @@ export default function Home() {
           <div className="py-2">
             <p className="home-section-label text-[10px] sm:text-xs">A SAFER WAY TO SOURCE</p>
             <h2 className="mt-2 max-w-xl text-xl font-bold leading-tight tracking-tight text-navy sm:text-2xl lg:text-3xl">Reliable essentials, backed by people who care.</h2>
-            <p className="mt-3 max-w-xl text-xs leading-5 text-gray-600 sm:text-sm sm:leading-6 lg:text-base lg:leading-7">MORJAL Enterprises is based in Kota, Rajasthan, and serves customers looking for electrical safety products and workplace protection essentials. We make it easier to explore products, get answers, and place an order.</p>
+            <p className="mt-3 max-w-xl text-xs leading-5 text-gray-600 sm:text-sm sm:leading-6 lg:text-base lg:leading-7">MORJAL Enterprises is based in Kaprain, Bundi, Rajasthan – 323301, India, and serves customers looking for electrical safety products and workplace protection essentials. We make it easier to explore products, get answers, and place an order.</p>
             <div className="mt-5 space-y-2 sm:mt-6 sm:space-y-3">
               {['Clear product information to support your choice', 'Support for product and order questions', 'Online shopping with delivery across India'].map((point) => <p className="flex items-start gap-3 text-xs font-medium text-navy sm:text-sm" key={point}><BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#BA8A24] sm:h-5 sm:w-5" />{point}</p>)}
             </div>

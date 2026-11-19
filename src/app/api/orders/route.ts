@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash, randomBytes } from 'crypto'
+import { createHash, createHmac, randomBytes } from 'crypto'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 type RequestedItem = { productId?: string; id?: string; quantity?: number }
@@ -7,20 +9,23 @@ type RequestedItem = { productId?: string; id?: string; quantity?: number }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const session = await getServerSession(authOptions)
+    const customerId = session?.user?.role === 'customer' ? session.user.id : null
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim()
     if (!idempotencyKey || !/^[a-zA-Z0-9-]{32,64}$/.test(idempotencyKey)) {
       return NextResponse.json({ error: 'Refresh checkout and try placing the order again.' }, { status: 400 })
     }
+    const trackingToken = createHmac('sha256', process.env.NEXTAUTH_SECRET || '').update(`order-tracking:${idempotencyKey}`).digest('hex')
 
     const existingOrder = await prisma.order.findUnique({
       where: { idempotencyKey },
-      select: { id: true, orderNumber: true, total: true, customerPhone: true },
+      select: { id: true, orderNumber: true, total: true, customerPhone: true, customerId: true },
     })
     if (existingOrder) {
-      if (existingOrder.customerPhone !== String(body.phone || '').trim()) {
+      if (existingOrder.customerPhone !== String(body.phone || '').trim() || (customerId && existingOrder.customerId !== customerId)) {
         return NextResponse.json({ error: 'Unable to verify this order request.' }, { status: 409 })
       }
-      return NextResponse.json({ id: existingOrder.id, orderNumber: existingOrder.orderNumber, total: existingOrder.total, trackingToken: idempotencyKey }, { status: 200 })
+      return NextResponse.json({ id: existingOrder.id, orderNumber: existingOrder.orderNumber, total: existingOrder.total, trackingToken }, { status: 200 })
     }
     const required = ['fullName', 'phone', 'address', 'city', 'state', 'pinCode']
     if (required.some((field) => typeof body[field] !== 'string' || !body[field].trim())) {
@@ -113,7 +118,8 @@ export async function POST(request: NextRequest) {
           orderNotes: body.orderNotes?.trim() || null, subtotal, shippingCharge, discount: 0,
           total: subtotal + shippingCharge, paymentMethod: 'cod', paymentStatus: 'pending', orderStatus: 'pending',
           idempotencyKey,
-          trackingTokenHash: createHash('sha256').update(idempotencyKey).digest('hex'),
+          trackingTokenHash: createHash('sha256').update(trackingToken).digest('hex'),
+          customerId,
           statusHistory: { create: { status: 'pending', note: 'Order placed by customer.' } },
           items: {
             create: items.map(({ requested, product }) => ({
@@ -127,7 +133,7 @@ export async function POST(request: NextRequest) {
       return order
     })
 
-    return NextResponse.json({ ...result, trackingToken: idempotencyKey }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ ...result, trackingToken }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to place order.'
     console.error('Error creating order')

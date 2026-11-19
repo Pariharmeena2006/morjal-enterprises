@@ -1,13 +1,12 @@
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+import { getAdminSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 import { formatPrice } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminCustomersPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   if (!session) redirect('/admin/login')
 
   const latestCustomerOrders = await prisma.order.findMany({

@@ -184,6 +184,10 @@ COD is enabled by default. To disable:
 
 Admin image uploads use the Vercel Blob server SDK. Create a Blob store in the Vercel project and set `BLOB_READ_WRITE_TOKEN` in Vercel Production (and your ignored local `.env.local` for local upload testing). This token is server-only; it must not use a `NEXT_PUBLIC_` prefix. New product and banner image URLs are stored in PostgreSQL. Uploads are authenticated and validate the MIME type, file signature, and size.
 
+## Customer accounts
+
+Customer registration and login are separate from the admin login. Customer pages include `/account`, `/account/orders`, `/account/profile`, `/account/addresses`, and `/account/security`. Orders created while signed in are associated with that customer; guest orders stay unlinked unless the customer later proves ownership with the private tracking token and matching account mobile number. Email verification and password-reset delivery use Resend only when both `RESEND_API_KEY` and `EMAIL_FROM` are configured. Without them, verification is explicitly disabled and password-reset email cannot be sent.
+
 ## Deployment
 
 ### Vercel Deployment
@@ -193,7 +197,7 @@ Admin image uploads use the Vercel Blob server SDK. Create a Blob store in the V
 3. Add environment variables in Vercel dashboard
 4. Deploy
 
-For production, set `MORJAL_DATABASE_URL` in Vercel to the connection string for the intended Prisma Postgres **production branch**. Verify the project and branch in Prisma Console first. The credential previously shared in chat must be rotated before it is used. Do not deploy the existing SQLite migration files to PostgreSQL. Before deploying schema-dependent features, review and apply the additive PostgreSQL SQL in `prisma/manual-postgres-migrations/20261119_admin_order_management.sql` against a backed-up staging database, then the intended production database. Do not run `prisma migrate deploy` with the historical SQLite migration chain.
+For production, set `MORJAL_DATABASE_URL` in Vercel to the connection string for the intended Prisma Postgres **production branch**. Verify the project and branch in Prisma Console first. The credential previously shared in chat must be rotated before it is used. Do not deploy the existing SQLite migration files to PostgreSQL. Before deploying schema-dependent features, review and apply the additive PostgreSQL SQL in `prisma/manual-postgres-migrations/20261119_admin_order_management.sql` against a backed-up staging database, then the intended production database. This migration adds customer and address tables, token/rate-limit tables and nullable `Order.customerId`; existing orders are not auto-linked. Do not run `prisma migrate deploy` with the historical SQLite migration chain.
 
 ### Environment Variables for Production
 
@@ -202,8 +206,9 @@ Required environment variables:
 - `NEXTAUTH_SECRET` (generate a secure random string)
 - `NEXTAUTH_URL` (your production domain)
 - `BLOB_READ_WRITE_TOKEN` (server-only Vercel Blob store token; required for persistent uploads)
+- `RESEND_API_KEY` and `EMAIL_FROM` (optional; configure a verified sending domain and Resend API key to enable customer email verification and password-reset emails)
 
-Shiprocket credentials are held by the existing server-side website settings and are never returned by the admin settings API. Keep Shiprocket disabled until its account credentials and pickup configuration have been verified. Razorpay is not active in the current checkout; no payment secret is required for the existing COD flow.
+If the email provider variables are absent, sign-up explicitly reports that email verification is not configured and accounts can sign in without verification; forgot-password reports that reset email is unavailable rather than claiming an email was sent. Shiprocket credentials are held by the existing server-side website settings and are never returned by the admin settings API. Keep Shiprocket disabled until its account credentials and pickup configuration have been verified. Razorpay is not active in the current checkout; no payment secret is required for the existing COD flow.
 
 ## Development
 

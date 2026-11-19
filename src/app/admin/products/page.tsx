@@ -1,6 +1,5 @@
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+import { getAdminSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,7 +11,7 @@ export const dynamic = 'force-dynamic'
 type ProductsPageProps = { searchParams?: { q?: string; status?: string } }
 
 export default async function AdminProductsPage({ searchParams = {} }: ProductsPageProps) {
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   if (!session) redirect('/admin/login')
 
   const query = searchParams.q?.trim() || ''
@@ -54,7 +53,7 @@ export default async function AdminProductsPage({ searchParams = {} }: ProductsP
             <tbody className="divide-y divide-slate-100">
               {products.map((product) => (
                 <tr key={product.id} className="text-slate-700 hover:bg-slate-50/70">
-                  <td className="px-4 py-3"><div className="flex items-center gap-3"><div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100">{product.images[0]?.url ? <Image src={product.images[0].url} alt={product.images[0].alt || product.name} fill sizes="48px" className="object-cover" /> : <Package className="m-auto h-5 w-5 text-slate-400" />}</div><div className="min-w-0"><p className="max-w-xs truncate font-semibold text-[#062653]">{product.name}</p><p className="mt-1 text-xs text-slate-500">{product.category}{product.featured ? ' · Featured' : ''}</p></div></div></td>
+                  <td className="px-4 py-3"><div className="flex items-center gap-3"><div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white">{product.images[0]?.url ? <Image src={product.images[0].url} alt={product.images[0].alt || product.name} fill sizes="48px" className="object-contain object-center p-1" /> : <Package className="m-auto h-5 w-5 text-slate-400" />}</div><div className="min-w-0"><p className="max-w-xs truncate font-semibold text-[#062653]">{product.name}</p><p className="mt-1 text-xs text-slate-500">{product.category}{product.featured ? ' · Featured' : ''}</p></div></div></td>
                   <td className="px-4 py-3">{product.sku || '—'}</td>
                   <td className="px-4 py-3"><div className="font-semibold text-[#062653]">₹{product.sellingPrice.toLocaleString('en-IN')}</div>{product.mrp && product.mrp > product.sellingPrice && <div className="text-xs text-slate-400 line-through">₹{product.mrp.toLocaleString('en-IN')}</div>}</td>
                   <td className="px-4 py-3"><span className={product.stockQuantity <= 5 ? 'font-semibold text-amber-700' : 'text-slate-700'}>{product.stockQuantity}</span>{product.stockQuantity <= 0 && <span className="ml-2 text-xs text-red-600">Out</span>}</td>

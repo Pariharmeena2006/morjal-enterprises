@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Search, ShoppingCart, Menu, X } from 'lucide-react'
+import { signOut, useSession } from 'next-auth/react'
+import { Search, ShoppingCart, Menu, X, UserRound } from 'lucide-react'
 import { Button } from './ui/button'
 import { readCart } from '@/lib/cart'
 
@@ -12,6 +13,8 @@ export default function Header() {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cartCount, setCartCount] = useState(0)
+  const { data: session, status } = useSession()
+  const customer = session?.user?.role === 'customer'
 
   useEffect(() => {
     const updateCartCount = () => {
@@ -49,7 +52,7 @@ export default function Header() {
         <div className="flex h-[60px] min-w-0 items-center justify-between gap-2 sm:h-16 sm:gap-4">
           {/* Logo */}
           <Link href="/" aria-label="MORJAL Enterprises home" className="relative block h-12 w-24 shrink-0 sm:h-14 sm:w-28">
-            <Image src="/logo.png" alt="MORJAL Enterprises Kota" fill priority sizes="112px" className="object-contain" />
+            <Image src="/logo.png" alt="MORJAL Enterprises, Kaprain, Bundi" fill priority sizes="112px" className="object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -71,6 +74,26 @@ export default function Header() {
             <Link href="/products#products" aria-label="Search products" className="hidden md:flex h-10 w-10 items-center justify-center text-navy transition-colors hover:text-gold">
               <Search className="h-5 w-5" />
             </Link>
+
+            {customer ? (
+              <details className="relative hidden sm:block">
+                <summary aria-label="Customer account menu" className="flex h-10 cursor-pointer list-none items-center justify-center gap-2 rounded-lg px-2 text-navy transition-colors hover:text-gold"><UserRound className="h-5 w-5" /><span className="hidden text-xs font-semibold lg:inline">Account</span></summary>
+                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                  <Link href="/account" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">My Account</Link>
+                  <Link href="/account/orders" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">My Orders</Link>
+                  <Link href="/account/addresses" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">Saved Addresses</Link>
+                  <Link href="/account/profile" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">Profile</Link>
+                  <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="w-full rounded-lg px-3 py-2 text-left text-sm text-navy hover:bg-blue-50">Logout</button>
+                </div>
+              </details>
+            ) : status === 'authenticated' ? (
+              <Link href="/admin" aria-label="Admin dashboard" className="hidden text-xs font-semibold text-navy hover:text-gold sm:inline">Admin</Link>
+            ) : (
+              <div className="hidden items-center gap-2 sm:flex">
+                <Link href="/login" className="rounded-lg px-2 py-2 text-xs font-semibold text-navy hover:text-gold">Login</Link>
+                <Link href="/signup" className="rounded-lg bg-[#073B82] px-3 py-2 text-xs font-semibold text-white hover:bg-navy">Create account</Link>
+              </div>
+            )}
 
             {/* Cart */}
             <Link href="/cart" className="relative">
@@ -112,6 +135,17 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
+              {customer ? <>
+                <Link href="/account" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Account</Link>
+                <Link href="/account/orders" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Orders</Link>
+                <Link href="/account/addresses" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Saved Addresses</Link>
+                <button type="button" className="py-2 text-left text-lg font-medium text-navy hover:text-gold" onClick={() => signOut({ callbackUrl: '/' })}>Logout</button>
+              </> : status === 'authenticated' ? (
+                <Link href="/admin" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Admin dashboard</Link>
+              ) : <>
+                <Link href="/login" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Login</Link>
+                <Link href="/signup" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Create account</Link>
+              </>}
             </div>
           </nav>
         </div>

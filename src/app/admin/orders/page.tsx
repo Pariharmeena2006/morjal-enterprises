@@ -1,6 +1,5 @@
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+import { getAdminSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,7 +15,7 @@ async function getOrders() {
 }
 
 export default async function AdminOrdersPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   
   if (!session) {
     redirect('/admin/login')

@@ -17,6 +17,77 @@ model Admin {
   orderStatusChanges OrderStatusHistory[]
 }
 
+model Customer {
+  id              String                   @id @default(cuid())
+  email           String                   @unique
+  password        String
+  name            String
+  phone           String
+  emailVerifiedAt DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  addresses       CustomerAddress[]
+  orders          Order[]
+  emailTokens     EmailVerificationToken[]
+  passwordTokens  PasswordResetToken[]
+
+  @@index([phone])
+}
+
+model CustomerAddress {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label      String   @default("Home")
+  fullName   String
+  phone      String
+  address    String
+  city       String
+  state      String
+  pinCode    String
+  landmark   String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId, isDefault])
+}
+
+model EmailVerificationToken {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([customerId, expiresAt])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([customerId, expiresAt])
+}
+
+model AuthRateLimit {
+  id              String   @id @default(cuid())
+  keyHash         String
+  action          String
+  attempts        Int      @default(0)
+  windowStartedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([keyHash, action])
+  @@index([windowStartedAt])
+}
+
 model Product {
   id                 String         @id @default(cuid())
   name               String
@@ -109,6 +180,8 @@ model Order {
   estimatedDelivery DateTime?
   idempotencyKey    String?              @unique
   trackingTokenHash String?              @unique
+  customerId        String?
+  customer          Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   items             OrderItem[]
@@ -116,6 +189,7 @@ model Order {
 
   @@index([orderStatus, createdAt])
   @@index([paymentStatus, createdAt])
+  @@index([customerId, createdAt])
 }
 
 model OrderItem {

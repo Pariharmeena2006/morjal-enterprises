@@ -42,14 +42,14 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
 
   return (
     <article className={`flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-xl ${compact ? '' : 'rounded-2xl shadow-sm'}`}>
-      <Link href={`/products/${product.slug}`} className={`group relative block overflow-hidden bg-background-light ${compact ? 'aspect-[2/1]' : 'aspect-[4/3]'}`} aria-label={`View ${product.name}`}>
+      <Link href={`/products/${product.slug}`} className={`group relative block overflow-hidden bg-white ${compact ? 'aspect-[3/2]' : 'aspect-[4/3]'}`} aria-label={`View ${product.name}`}>
         {mainImage && !imageFailed ? (
           <Image
             src={mainImage.url}
             alt={mainImage.alt || product.name}
             fill
             sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 25vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-contain object-center p-2 sm:p-3"
             onError={() => setImageFailed(true)}
           />
         ) : (

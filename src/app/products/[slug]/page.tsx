@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Play, Star, Video } from 'lucide-react'
+import { ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Play, Star, Video, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -44,6 +44,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
   const [loading, setLoading] = useState(true)
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [cartNotice, setCartNotice] = useState('')
+  const [showImagePreview, setShowImagePreview] = useState(false)
 
   useEffect(() => {
     fetchProduct()
@@ -84,6 +85,12 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
   const buyNow = () => {
     const result = addToCart()
     if (result === 'added' || result === 'limit') window.location.href = '/checkout'
+  }
+
+  const changeImage = (direction: -1 | 1) => {
+    if (!product?.images.length) return
+    const imageCount = product.images.length
+    setSelectedImage((index) => (index + direction + imageCount) % imageCount)
   }
 
   const containerVariants = {
@@ -159,39 +166,46 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
         <div className="mb-8 grid min-w-0 grid-cols-1 gap-4 sm:mb-12 sm:gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Product Images */}
           <motion.div variants={itemVariants}>
-            <div className="bg-background-light rounded-2xl overflow-hidden mb-4">
+            <div className="relative mb-4 flex h-[min(84vw,680px)] min-h-[320px] max-h-[76vh] w-full items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-white sm:h-[min(70vw,720px)] sm:min-h-[420px] lg:h-[min(64vw,760px)]">
               {product.images[selectedImage] && !failedImages.has(product.images[selectedImage].url) ? (
-                <div className="relative h-[min(78vw,390px)] min-h-64 sm:h-96 lg:h-[500px]">
+                <div className="absolute inset-0 cursor-zoom-in" onClick={() => setShowImagePreview(true)}>
                   <Image
                     src={product.images[selectedImage].url}
                     alt={product.images[selectedImage].alt || product.name}
                     fill
-                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-contain object-center p-3 sm:p-5"
                     priority
                     onError={() => setFailedImages((current) => new Set(current).add(product.images[selectedImage].url))}
                   />
+                  <span className="absolute bottom-3 right-3 rounded-full bg-white/90 p-2 text-navy shadow-sm" aria-label="Open image preview"><Maximize2 className="h-4 w-4" /></span>
                 </div>
               ) : (
-                <div className="flex h-[min(78vw,390px)] min-h-64 items-center justify-center bg-gradient-to-br from-navy to-navy-deep sm:h-96 lg:h-[500px]">
-                  <p className="text-white">No Image Available</p>
-                </div>
+                <div className="flex h-full w-full items-center justify-center bg-background-light text-gray-500"><p>No Image Available</p></div>
               )}
+              {product.images.length > 1 && <>
+                <button type="button" onClick={() => changeImage(-1)} aria-label="Previous product image" className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-navy shadow hover:bg-white"><ChevronLeft className="h-5 w-5" /></button>
+                <button type="button" onClick={() => changeImage(1)} aria-label="Next product image" className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-navy shadow hover:bg-white"><ChevronRight className="h-5 w-5" /></button>
+                <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-navy shadow-sm">{selectedImage + 1} / {product.images.length}</span>
+              </>}
             </div>
             
             {/* Thumbnails */}
             {product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                {product.images.map((image: any, index: number) => (
-                  <div 
+                {product.images.map((image, index) => (
+                  <button type="button"
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`bg-background-light rounded-xl overflow-hidden cursor-pointer transition-all ${
-                      selectedImage === index ? 'ring-2 ring-gold' : 'hover:ring-2 hover:ring-navy'
+                    aria-label={`Show product image ${index + 1}`}
+                    aria-pressed={selectedImage === index}
+                    className={`rounded-xl overflow-hidden transition-all ${
+                      selectedImage === index ? 'ring-2 ring-gold' : 'ring-1 ring-slate-200 hover:ring-2 hover:ring-navy'
                     }`}
                   >
-                    <div className="relative h-16 bg-background-light sm:h-20">
+                    <div className="relative flex h-20 items-center justify-center bg-white sm:h-24">
                       {failedImages.has(image.url) ? (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-navy to-navy-deep text-gold">
+                        <div className="flex h-full w-full items-center justify-center bg-background-light text-gray-500">
                           <ShoppingCart className="h-5 w-5 opacity-70" />
                         </div>
                       ) : (
@@ -199,15 +213,17 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                           src={image.url}
                           alt={image.alt || `${product.name} ${index + 1}`}
                           fill
-                          className="object-cover"
+                          sizes="(max-width: 640px) 25vw, 100px"
+                          className="object-contain object-center p-1.5"
                           onError={() => setFailedImages((current) => new Set(current).add(image.url))}
                         />
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
+            {showImagePreview && product.images[selectedImage] && <div role="dialog" aria-modal="true" aria-label="Full-screen product image" onClick={() => setShowImagePreview(false)} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 sm:p-8"><button type="button" onClick={() => setShowImagePreview(false)} aria-label="Close image preview" className="absolute right-4 top-4 z-20 rounded-full bg-white/15 p-2 text-white hover:bg-white/25"><X className="h-6 w-6" /></button><div className="relative h-[92vh] w-full max-w-7xl"><Image src={product.images[selectedImage].url} alt={product.images[selectedImage].alt || product.name} fill sizes="100vw" className="object-contain object-center" /></div>{product.images.length > 1 && <><button type="button" onClick={(event) => { event.stopPropagation(); changeImage(-1) }} aria-label="Previous product image" className="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white"><ChevronLeft className="h-6 w-6" /></button><button type="button" onClick={(event) => { event.stopPropagation(); changeImage(1) }} aria-label="Next product image" className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white"><ChevronRight className="h-6 w-6" /></button></>}</div>}
           </motion.div>
 
           {/* Product Info */}
@@ -461,13 +477,14 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               {relatedProducts.map((relatedProduct) => (
                 <Link key={relatedProduct.id} href={`/products/${relatedProduct.slug}`}>
                   <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer overflow-hidden border border-gray-100">
-                    <div className="relative h-32 sm:h-40 md:h-48 bg-background-light">
+                    <div className="relative h-32 bg-white sm:h-40 md:h-48">
                       {relatedProduct.images[0] ? (
                         <Image
                           src={relatedProduct.images[0].url}
                           alt={relatedProduct.name}
                           fill
-                          className="object-cover"
+                          sizes="(max-width: 640px) 50vw, 25vw"
+                          className="object-contain object-center p-2"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs sm:text-sm">

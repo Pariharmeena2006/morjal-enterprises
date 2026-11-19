@@ -33,10 +33,28 @@ export default function CheckoutPage() {
   const [idempotencyKey, setIdempotencyKey] = useState('')
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1000)
   const [codEnabled, setCodEnabled] = useState(true)
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ id: string; label: string; fullName: string; phone: string; address: string; city: string; state: string; pinCode: string; landmark: string | null; isDefault: boolean }>>([])
 
   // Load cart from localStorage on mount
   useEffect(() => {
     setCartItems(readCart())
+    fetch('/api/account/profile', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return null
+        const customer = await response.json()
+        setFormData((current) => ({ ...current, fullName: customer.name || current.fullName, phone: customer.phone || current.phone, email: customer.email || current.email }))
+        const addressResponse = await fetch('/api/account/addresses', { cache: 'no-store' })
+        if (addressResponse.ok) {
+          const addresses = await addressResponse.json()
+          if (Array.isArray(addresses)) {
+            setSavedAddresses(addresses)
+            const primary = addresses.find((address) => address.isDefault)
+            if (primary) setFormData((current) => ({ ...current, fullName: primary.fullName, phone: primary.phone, address: primary.address, city: primary.city, state: primary.state, pinCode: primary.pinCode, landmark: primary.landmark || '' }))
+          }
+        }
+        return customer
+      })
+      .catch(() => undefined)
     fetch('/api/store-settings')
       .then((response) => response.json())
       .then((settings) => {
@@ -55,6 +73,12 @@ export default function CheckoutPage() {
       ...formData,
       [e.target.name]: e.target.value
     })
+  }
+
+  const selectSavedAddress = (id: string) => {
+    const saved = savedAddresses.find((address) => address.id === id)
+    if (!saved) return
+    setFormData((current) => ({ ...current, fullName: saved.fullName, phone: saved.phone, address: saved.address, city: saved.city, state: saved.state, pinCode: saved.pinCode, landmark: saved.landmark || '' }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -231,6 +255,7 @@ export default function CheckoutPage() {
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:p-6">
                 <h2 className="mb-5 text-lg font-bold text-navy sm:mb-6 sm:text-xl">Shipping Address</h2>
                 <div className="space-y-5">
+                  {savedAddresses.length > 0 && <div><Label htmlFor="savedAddress" className="text-navy font-medium">Use a saved address</Label><select id="savedAddress" defaultValue="" onChange={(event) => selectSavedAddress(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-navy"><option value="">Enter a new address</option>{savedAddresses.map((address) => <option key={address.id} value={address.id}>{address.label} · {address.address}, {address.city}</option>)}</select></div>}
                   <div>
                     <Label htmlFor="address" className="text-navy font-medium">House/Building/Street Address *</Label>
                     <Textarea

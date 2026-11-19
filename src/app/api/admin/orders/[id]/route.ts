@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAdminSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 
 const orderStatuses = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out for delivery', 'delivered', 'cancelled', 'returned']
 const paymentStatuses = ['pending', 'paid', 'failed', 'refunded']
 
 async function requireAdmin() {
-  return Boolean(await getServerSession(authOptions))
+  return Boolean(await getAdminSession())
 }
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
@@ -32,7 +31,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

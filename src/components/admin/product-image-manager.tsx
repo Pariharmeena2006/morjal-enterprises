@@ -147,8 +147,8 @@ export default function ProductImageManager({ images, onChange, onUploadingChang
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {images.map((image, index) => (
             <div key={image.id || `${image.url}-${index}`} className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
-              <div className="group relative aspect-square bg-gray-100">
-                <Image src={image.url} alt={image.alt || 'Product photo'} fill sizes="(max-width: 640px) 50vw, 20vw" className="object-cover" />
+              <div className="group relative aspect-square bg-white">
+                <Image src={image.url} alt={image.alt || 'Product photo'} fill sizes="(max-width: 640px) 50vw, 20vw" className="object-contain object-center p-2" />
                 {index === 0 && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gold px-2 py-1 text-[10px] font-bold text-navy"><Star className="h-3 w-3 fill-current" /> Main photo</span>}
                 <button type="button" onClick={() => setPreviewUrl(image.url)} aria-label="Preview image" className="absolute bottom-2 right-2 rounded-full bg-black/70 p-2 text-white opacity-100 transition hover:bg-black sm:opacity-0 sm:group-hover:opacity-100"><Maximize2 className="h-4 w-4" /></button>
               </div>

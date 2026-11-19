@@ -1,6 +1,5 @@
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+import { getAdminSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +16,7 @@ async function getVideos() {
 
 async function deleteVideo(id: string) {
   'use server'
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   if (!session) redirect('/admin/login')
   await prisma.video.delete({
     where: { id }
@@ -26,7 +25,7 @@ async function deleteVideo(id: string) {
 
 async function setVideoEnabled(id: string, isEnabled: boolean) {
   'use server'
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   if (!session) redirect('/admin/login')
   await prisma.video.update({ where: { id }, data: { isEnabled } })
   revalidatePath('/admin/videos')
@@ -34,7 +33,7 @@ async function setVideoEnabled(id: string, isEnabled: boolean) {
 }
 
 export default async function AdminVideosPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   
   if (!session) {
     redirect('/admin/login')

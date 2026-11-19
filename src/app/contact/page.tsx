@@ -134,7 +134,15 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-navy mb-1">Address</h3>
-                      <p className="break-words text-text">{contactDetails.address || 'Kota, Rajasthan, India'}</p>
+                      <p className="break-words text-text">{contactDetails.address || 'Kaprain, Bundi, Rajasthan – 323301, India'}</p>
+                      <a
+                        href="https://www.google.com/maps/search/?api=1&query=Kaprain%2C+Bundi%2C+Rajasthan+323301%2C+India"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-block text-sm font-semibold text-navy hover:text-gold"
+                      >
+                        View on Google Maps
+                      </a>
                   </div>
                 </div>
               </div>

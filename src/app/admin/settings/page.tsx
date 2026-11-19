@@ -43,7 +43,7 @@ type SettingsForm = {
 }
 
 const emptyForm: SettingsForm = {
-  businessName: 'MORJAL Enterprises', contactPhone: '', contactEmail: '', contactAddress: '',
+  businessName: 'MORJAL Enterprises', contactPhone: '', contactEmail: '', contactAddress: 'Kaprain, Bundi, Rajasthan – 323301, India',
   whatsappNumber: '', freeShippingThreshold: '1000', codEnabled: true, announcementMessage: '',
   ownerName: '', ownerTitle: '', ownerBio: '', ownerStory: '', ownerImageUrl: '', ownerAchievements: '',
   socialFacebook: '', socialInstagram: '', socialTwitter: '', socialLinkedIn: '',

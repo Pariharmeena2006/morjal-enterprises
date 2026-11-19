@@ -37,10 +37,10 @@ export default function Footer() {
           {/* Column 1: MORJAL Enterprises */}
           <div>
             <div className="relative mb-4 h-20 w-36 overflow-hidden rounded-lg bg-white sm:h-24 sm:w-44">
-              <Image src="/logo.png" alt="MORJAL Enterprises Kota" fill sizes="176px" className="object-contain" />
+              <Image src="/logo.png" alt="MORJAL Enterprises, Kaprain, Bundi" fill sizes="176px" className="object-contain" />
             </div>
             <p className="text-gray-300 text-sm mb-4">
-              Based in Kota, Rajasthan, Morjal Enterprises is a trusted provider of premium electrical safety equipment for industrial and workplace protection.
+              Based in Kaprain, Bundi, Rajasthan, Morjal Enterprises is a trusted provider of premium electrical safety equipment for industrial and workplace protection.
             </p>
           </div>
 
@@ -109,7 +109,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-gray-300">
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-1 text-gold flex-shrink-0" />
-                <span>{details.contactAddress || 'Kota, Rajasthan, India'}</span>
+                <span>{details.contactAddress || 'Kaprain, Bundi, Rajasthan – 323301, India'}</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gold flex-shrink-0" />

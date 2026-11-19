@@ -147,13 +147,13 @@ export default function CartPage() {
                 <div className="p-6">
                   <div className="flex flex-col sm:flex-row gap-6">
                     {/* Product Image */}
-                      <div className="relative h-48 w-full flex-shrink-0 rounded-xl bg-background-light sm:h-32 sm:w-32">
+                      <div className="relative flex h-48 w-full flex-shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white sm:h-32 sm:w-32">
                       {item.image ? (
                         <Image
                           src={item.image}
                           alt={item.name}
                           fill
-                          className="object-cover rounded-xl"
+                          className="rounded-xl object-contain object-center p-2"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">

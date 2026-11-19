@@ -1,6 +1,5 @@
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+import { getAdminSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 import { formatPrice } from '@/lib/utils'
 import Link from 'next/link'
@@ -11,7 +10,7 @@ export const dynamic = 'force-dynamic'
 const statusLabels = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out for delivery', 'delivered', 'cancelled', 'returned']
 
 export default async function AdminDashboard() {
-  const session = await getServerSession(authOptions)
+  const session = await getAdminSession()
   if (!session) redirect('/admin/login')
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000)

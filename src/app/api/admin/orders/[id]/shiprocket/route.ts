@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAdminSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 import { createShiprocketOrder } from '@/lib/shiprocket'
 
 export async function POST(_request: Request, { params }: { params: { id: string } }) {
-  if (!(await getServerSession(authOptions))) {
+  if (!(await getAdminSession())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
