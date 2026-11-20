@@ -12,6 +12,7 @@
     "@hookform/resolvers": "^3.6.0",
     "@prisma/client": "^5.18.0",
     "@vercel/blob": "^2.9.0",
+    "@vercel/speed-insights": "^2.1.0",
     "autoprefixer": "^10.6.1",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",

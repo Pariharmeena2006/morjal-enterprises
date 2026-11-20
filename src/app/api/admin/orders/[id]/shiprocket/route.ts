@@ -23,8 +23,19 @@ export async function POST(_request: Request, { params }: { params: { id: string
   const settings = await prisma.websiteSettings.findFirst({
     select: { shiprocketEnabled: true, shiprocketEmail: true, shiprocketApiKey: true },
   })
-  if (!settings?.shiprocketEnabled || !settings.shiprocketEmail || !settings.shiprocketApiKey) {
-    return NextResponse.json({ error: 'Shiprocket is disabled or its server-side credentials are not configured.' }, { status: 503 })
+
+  // Check if Shiprocket is enabled and credentials are available (env vars or database)
+  if (!settings?.shiprocketEnabled) {
+    console.error('[Shiprocket API] Shiprocket is disabled in settings')
+    return NextResponse.json({ error: 'Shiprocket is disabled in settings.' }, { status: 503 })
+  }
+
+  const email = process.env.SHIPROCKET_EMAIL || settings.shiprocketEmail
+  const password = process.env.SHIPROCKET_PASSWORD || settings.shiprocketApiKey
+
+  if (!email || !password) {
+    console.error('[Shiprocket API] No credentials available (env vars or database settings)')
+    return NextResponse.json({ error: 'Shiprocket credentials are not configured.' }, { status: 503 })
   }
 
   const claim = await prisma.order.updateMany({
@@ -32,11 +43,13 @@ export async function POST(_request: Request, { params }: { params: { id: string
     data: { shiprocketOrderId: 'pending' },
   })
   if (claim.count !== 1) {
+    console.error(`[Shiprocket API] Duplicate shipment attempt for order ${order.orderNumber}`)
     return NextResponse.json({ error: 'A Shiprocket request already exists or is being reconciled. Check the Shiprocket dashboard before retrying.' }, { status: 409 })
   }
 
   const shiprocketResult = await createShiprocketOrder(order)
   if (!shiprocketResult || typeof shiprocketResult !== 'object') {
+    console.error(`[Shiprocket API] Order creation failed for order ${order.orderNumber}`)
     // Keep the claim locked: the upstream request may have succeeded even if its response was lost.
     return NextResponse.json({ error: 'Shiprocket did not confirm the response. The request is locked to prevent duplicates; verify the Shiprocket dashboard before retrying.' }, { status: 502 })
   }
@@ -52,5 +65,6 @@ export async function POST(_request: Request, { params }: { params: { id: string
     },
     select: { id: true, orderNumber: true, orderStatus: true, shiprocketOrderId: true, shipmentId: true, trackingNumber: true, courierName: true },
   })
+  console.log(`[Shiprocket API] Shipment created successfully for order ${order.orderNumber}`)
   return NextResponse.json(updated)
 }

@@ -53,8 +53,20 @@ interface ShiprocketOrderData {
 export async function createShiprocketOrder(orderData: any) {
   try {
     const settings = await prisma.websiteSettings.findFirst()
-    
-    if (!settings?.shiprocketEnabled || !settings.shiprocketEmail || !settings.shiprocketApiKey) {
+
+    // Check if Shiprocket is enabled
+    if (!settings?.shiprocketEnabled) {
+      console.error('[Shiprocket] Shiprocket is disabled in settings')
+      return null
+    }
+
+    // Use environment variables as primary, fallback to database settings
+    const email = process.env.SHIPROCKET_EMAIL || settings.shiprocketEmail
+    const password = process.env.SHIPROCKET_PASSWORD || settings.shiprocketApiKey
+    const channelId = settings.shiprocketChannelId || ''
+
+    if (!email || !password) {
+      console.error('[Shiprocket] No credentials available (env vars or database settings)')
       return null
     }
 
@@ -63,18 +75,23 @@ export async function createShiprocketOrder(orderData: any) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: settings.shiprocketEmail,
-        password: settings.shiprocketApiKey,
+        email,
+        password,
       }),
     })
 
     if (!authResponse.ok) {
-      console.error('Shiprocket auth failed')
+      console.error(`[Shiprocket] Auth failed with status ${authResponse.status}`)
       return null
     }
 
     const authData = await authResponse.json()
     const token = authData.token
+
+    if (!token) {
+      console.error('[Shiprocket] No token received from auth response')
+      return null
+    }
 
     // Prepare order items
     const orderItems = orderData.items.map((item: any) => ({
@@ -92,7 +109,7 @@ export async function createShiprocketOrder(orderData: any) {
       order_id: orderData.orderNumber,
       order_date: new Date().toISOString().split('T')[0],
       pickup_location: 'Primary',
-      channel_id: settings.shiprocketChannelId || '',
+      channel_id: channelId,
       comment: orderData.orderNotes || '',
       billing_customer_name: orderData.customerName.split(' ')[0] || orderData.customerName,
       billing_last_name: orderData.customerName.split(' ').slice(1).join(' ') || '',
@@ -139,14 +156,14 @@ export async function createShiprocketOrder(orderData: any) {
     })
 
     if (!orderResponse.ok) {
-      console.error('Shiprocket order creation failed with status', orderResponse.status)
+      console.error(`[Shiprocket] Order creation failed with status ${orderResponse.status}`)
       return null
     }
 
     const shiprocketData = await orderResponse.json()
     return shiprocketData
   } catch (error) {
-    console.error('Shiprocket API request failed')
+    console.error('[Shiprocket] API request failed:', error instanceof Error ? error.message : 'Unknown error')
     return null
   }
 }
@@ -154,8 +171,19 @@ export async function createShiprocketOrder(orderData: any) {
 export async function getShiprocketTracking(orderId: string) {
   try {
     const settings = await prisma.websiteSettings.findFirst()
-    
-    if (!settings?.shiprocketEnabled || !settings.shiprocketEmail || !settings.shiprocketApiKey) {
+
+    // Check if Shiprocket is enabled
+    if (!settings?.shiprocketEnabled) {
+      console.error('[Shiprocket] Shiprocket is disabled in settings')
+      return null
+    }
+
+    // Use environment variables as primary, fallback to database settings
+    const email = process.env.SHIPROCKET_EMAIL || settings.shiprocketEmail
+    const password = process.env.SHIPROCKET_PASSWORD || settings.shiprocketApiKey
+
+    if (!email || !password) {
+      console.error('[Shiprocket] No credentials available (env vars or database settings)')
       return null
     }
 
@@ -164,17 +192,23 @@ export async function getShiprocketTracking(orderId: string) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: settings.shiprocketEmail,
-        password: settings.shiprocketApiKey,
+        email,
+        password,
       }),
     })
 
     if (!authResponse.ok) {
+      console.error(`[Shiprocket] Auth failed with status ${authResponse.status}`)
       return null
     }
 
     const authData = await authResponse.json()
     const token = authData.token
+
+    if (!token) {
+      console.error('[Shiprocket] No token received from auth response')
+      return null
+    }
 
     // Get tracking data
     const trackingResponse = await fetch(`https://apiv2.shiprocket.in/v1/external/courier/track/shipment/${orderId}`, {
@@ -184,12 +218,13 @@ export async function getShiprocketTracking(orderId: string) {
     })
 
     if (!trackingResponse.ok) {
+      console.error(`[Shiprocket] Tracking request failed with status ${trackingResponse.status}`)
       return null
     }
 
     return await trackingResponse.json()
   } catch (error) {
-    console.error('Shiprocket tracking request failed')
+    console.error('[Shiprocket] Tracking request failed:', error instanceof Error ? error.message : 'Unknown error')
     return null
   }
 }
