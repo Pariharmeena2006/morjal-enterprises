@@ -2,12 +2,15 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { signIn } from 'next-auth/react'
 
 export default function SignupPage() {
+  const router = useRouter()
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
   const [visible, setVisible] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -28,6 +31,22 @@ export default function SignupPage() {
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Unable to create account.')
+
+      // If email verification is not required, auto-login
+      if (!result.verificationRequired) {
+        const signInResult = await signIn('credentials', {
+          email: form.email,
+          password: form.password,
+          accountType: 'customer',
+          redirect: false,
+        })
+        if (signInResult?.ok) {
+          router.replace('/account')
+          router.refresh()
+          return
+        }
+      }
+
       setMessage(result.message)
       setForm((current) => ({ ...current, password: '', confirmPassword: '' }))
     } catch (requestError) {

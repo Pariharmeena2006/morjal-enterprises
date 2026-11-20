@@ -5,7 +5,7 @@ async function updateSettings() {
   const settings = {
     ownerName: "Devraj Morjal",
     ownerTitle: "Founder & CEO",
-    ownerImageUrl: "/owner/devraj-profile.jpg",
+    ownerImageUrl: "/owner/profile.png",
     ownerBio: "Leading MORJAL Enterprises with a commitment to workplace safety and quality electrical equipment across Rajasthan.",
     ownerAchievements: "Award for Excellence in Safety Equipment Supply\nPioneer in Safety Equipment Distribution\nTrusted by Industries Across Rajasthan\n10+ Years of Experience in Safety Solutions",
     contactPhone: "9694142555",

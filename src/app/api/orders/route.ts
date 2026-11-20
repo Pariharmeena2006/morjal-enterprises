@@ -10,7 +10,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const session = await getServerSession(authOptions)
-    const customerId = session?.user?.role === 'customer' ? session.user.id : null
+
+    // Require customer authentication
+    if (!session || session.user?.role !== 'customer') {
+      return NextResponse.json({ error: 'Please sign in to place an order.' }, { status: 401 })
+    }
+
+    const customerId = session.user.id
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim()
     if (!idempotencyKey || !/^[a-zA-Z0-9-]{32,64}$/.test(idempotencyKey)) {
       return NextResponse.json({ error: 'Refresh checkout and try placing the order again.' }, { status: 400 })

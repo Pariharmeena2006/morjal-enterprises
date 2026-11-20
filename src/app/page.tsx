@@ -93,9 +93,9 @@ export default function Home() {
     let active = true
     const load = async () => {
       const [productResponse, bannerResponse, settingsResponse] = await Promise.allSettled([
-        fetch('/api/products', { cache: 'no-store' }),
-        fetch('/api/banners', { cache: 'no-store' }),
-        fetch('/api/store-settings', { cache: 'no-store' }),
+        fetch('/api/products', { next: { revalidate: 300 } }),
+        fetch('/api/banners', { next: { revalidate: 300 } }),
+        fetch('/api/store-settings', { next: { revalidate: 300 } }),
       ])
       if (!active) return
 

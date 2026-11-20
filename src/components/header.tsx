@@ -89,9 +89,9 @@ export default function Header() {
             ) : status === 'authenticated' ? (
               <Link href="/admin" aria-label="Admin dashboard" className="hidden text-xs font-semibold text-navy hover:text-gold sm:inline">Admin</Link>
             ) : (
-              <div className="hidden items-center gap-2 sm:flex">
-                <Link href="/login" className="rounded-lg px-2 py-2 text-xs font-semibold text-navy hover:text-gold">Login</Link>
-                <Link href="/signup" className="rounded-lg bg-[#073B82] px-3 py-2 text-xs font-semibold text-white hover:bg-navy">Create account</Link>
+              <div className="flex items-center gap-2">
+                <Link href="/login" className="rounded-lg px-2 py-2 text-xs font-semibold text-navy hover:text-gold sm:block">Login</Link>
+                <Link href="/signup" className="rounded-lg bg-[#073B82] px-3 py-2 text-xs font-semibold text-white hover:bg-navy sm:block">Create account</Link>
               </div>
             )}
 

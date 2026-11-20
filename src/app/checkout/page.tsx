@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,6 +15,8 @@ import Link from 'next/link'
 import { readCart, type CartItem } from '@/lib/cart'
 
 export default function CheckoutPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -35,8 +39,16 @@ export default function CheckoutPage() {
   const [codEnabled, setCodEnabled] = useState(true)
   const [savedAddresses, setSavedAddresses] = useState<Array<{ id: string; label: string; fullName: string; phone: string; address: string; city: string; state: string; pinCode: string; landmark: string | null; isDefault: boolean }>>([])
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login?callbackUrl=/checkout')
+    }
+  }, [status, router])
+
   // Load cart from localStorage on mount
   useEffect(() => {
+    if (status !== 'authenticated') return
     setCartItems(readCart())
     fetch('/api/account/profile', { cache: 'no-store' })
       .then(async (response) => {
@@ -127,6 +139,17 @@ export default function CheckoutPage() {
         ease: "easeOut" as const
       }
     }
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy mx-auto"></div>
+          <p className="mt-4 text-navy">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (orderNumber) {
