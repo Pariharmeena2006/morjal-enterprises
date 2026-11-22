@@ -15,7 +15,7 @@ function normalizeAddress(body: Record<string, unknown>) {
 export async function GET() {
   const session = await getCustomerSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const addresses = await prisma.customerAddress.findMany({ where: { customerId: session.user.id }, orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }] })
+  const addresses = await prisma.customerAddress.findMany({ where: { customerId: session.id }, orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }] })
   return NextResponse.json(addresses, { headers: { 'Cache-Control': 'no-store' } })
 }
 
@@ -26,11 +26,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = normalizeAddress(body)
     if (!data) return NextResponse.json({ error: 'Check the address fields, phone number, and PIN code.' }, { status: 400 })
-    const count = await prisma.customerAddress.count({ where: { customerId: session.user.id } })
+    const count = await prisma.customerAddress.count({ where: { customerId: session.id } })
     if (count >= 20) return NextResponse.json({ error: 'You can save up to 20 addresses.' }, { status: 400 })
     const address = await prisma.$transaction(async (tx) => {
-      if (data.isDefault || count === 0) await tx.customerAddress.updateMany({ where: { customerId: session.user.id }, data: { isDefault: false } })
-      return tx.customerAddress.create({ data: { ...data, isDefault: data.isDefault || count === 0, customerId: session.user.id } })
+      if (data.isDefault || count === 0) await tx.customerAddress.updateMany({ where: { customerId: session.id }, data: { isDefault: false } })
+      return tx.customerAddress.create({ data: { ...data, isDefault: data.isDefault || count === 0, customerId: session.id } })
     })
     return NextResponse.json(address, { status: 201 })
   } catch {

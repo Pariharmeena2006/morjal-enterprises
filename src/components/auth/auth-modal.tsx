@@ -1,29 +1,29 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { X, Eye, EyeOff } from 'lucide-react'
+import { signIn } from 'next-auth/react'
+import { X, Eye, EyeOff, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signIn } from 'next-auth/react'
 
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   onAuthSuccess: () => void
-  defaultMode?: 'login' | 'signup'
+  defaultMode?: 'login' | 'signup' | 'otp'
   redirectTo?: string
 }
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode = 'login', redirectTo }: AuthModalProps) {
-  const { data: session } = useSession()
+export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode = 'otp', redirectTo }: AuthModalProps) {
   const router = useRouter()
-  const [mode, setMode] = useState<'login' | 'signup'>(defaultMode)
+  const [mode, setMode] = useState<'login' | 'signup' | 'otp'>(defaultMode)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('')
@@ -38,46 +38,112 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode 
     confirmPassword: '',
   })
 
-  useEffect(() => {
-    if (session?.user?.role === 'customer') {
-      onAuthSuccess()
-      onClose()
-    }
-  }, [session, onAuthSuccess, onClose])
+  // OTP form state
+  const [otpEmail, setOtpEmail] = useState('')
+  const [otp, setOtp] = useState('')
 
   useEffect(() => {
     if (isOpen) {
       setMode(defaultMode)
       setError('')
+      setMessage('')
     }
   }, [isOpen, defaultMode])
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(defaultMode)
+      setError('')
+      setMessage('')
+    }
+  }, [isOpen, defaultMode])
+
+  const handleOTPLogin = async (action: 'send' | 'verify' | 'resend') => {
+    setLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      if (action === 'send') {
+        const response = await fetch('/api/auth/otp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: otpEmail }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Failed to send OTP')
+        setMessage('OTP sent to your email!')
+        setCountdown(30)
+        const interval = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+      } else if (action === 'verify') {
+        const response = await fetch('/api/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: otpEmail, otp }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Failed to verify OTP')
+        onAuthSuccess()
+        onClose()
+        if (redirectTo) {
+          router.replace(redirectTo)
+          router.refresh()
+        }
+      } else if (action === 'resend') {
+        const response = await fetch('/api/auth/otp/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: otpEmail }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Failed to resend OTP')
+        setMessage('New OTP sent!')
+        setCountdown(30)
+        const interval = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Operation failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     try {
-      const result = await signIn('credentials', {
-        email: loginEmail,
-        password: loginPassword,
-        accountType: 'customer',
-        redirect: false,
+      const result = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword, accountType: 'customer' }),
       })
-
-      if (!result?.ok || result.error) {
-        setError('Email or password is incorrect.')
-        return
-      }
-
+      const data = await result.json()
+      if (!result.ok) throw new Error(data.error || 'Email or password is incorrect.')
       onAuthSuccess()
       onClose()
       if (redirectTo) {
         router.replace(redirectTo)
         router.refresh()
       }
-    } catch {
-      setError('Unable to sign in right now. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in right now.')
     } finally {
       setLoading(false)
     }
@@ -176,8 +242,69 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode 
             {error}
           </div>
         )}
+        {message && (
+          <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+            {message}
+          </div>
+        )}
 
-        {mode === 'login' ? (
+        {mode === 'otp' ? (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="otp-email">Email address</Label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  id="otp-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={otpEmail}
+                  onChange={(e) => setOtpEmail(e.target.value)}
+                  className="pl-10"
+                  placeholder="your@email.com"
+                />
+              </div>
+            </div>
+            {!message && (
+              <Button onClick={() => handleOTPLogin('send')} disabled={loading} className="w-full bg-[#073B82] text-white hover:bg-navy">
+                {loading ? 'Sending OTP…' : 'Send OTP'}
+              </Button>
+            )}
+            {message && (
+              <>
+                <div>
+                  <Label htmlFor="otp">Enter 6-digit OTP</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    required
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="mt-1 text-center text-2xl tracking-widest"
+                    placeholder="000000"
+                  />
+                </div>
+                <Button onClick={() => handleOTPLogin('verify')} disabled={loading} className="w-full bg-[#073B82] text-white hover:bg-navy">
+                  {loading ? 'Verifying…' : 'Verify & Sign In'}
+                </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => handleOTPLogin('resend')}
+                    disabled={loading || countdown > 0}
+                    className="text-sm text-[#073B82] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : mode === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <Label htmlFor="login-email">Email</Label>
@@ -256,7 +383,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode 
               />
             </div>
             <div>
-              <Label htmlFor="signup-phone">Mobile number</Label>
+              <Label htmlFor="signup-phone">Mobile number (optional)</Label>
               <Input
                 id="signup-phone"
                 type="tel"
@@ -264,7 +391,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode 
                 inputMode="numeric"
                 pattern="[0-9]{10}"
                 maxLength={10}
-                required
                 value={signupForm.phone}
                 onChange={(e) => setSignupForm({ ...signupForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                 className="mt-1"
@@ -316,14 +442,41 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode 
         )}
 
         <div className="mt-6 text-center text-sm text-slate-600">
-          {mode === 'login' ? (
+          {mode === 'otp' ? (
             <>
-              New to MORJAL?{' '}
+              Prefer password?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login')
+                  setError('')
+                  setMessage('')
+                }}
+                className="font-semibold text-[#073B82] hover:underline"
+              >
+                Sign in with password
+              </button>
+            </>
+          ) : mode === 'login' ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('otp')
+                  setError('')
+                  setMessage('')
+                }}
+                className="font-semibold text-[#073B82] hover:underline"
+              >
+                Use OTP instead
+              </button>
+              {' '}
               <button
                 type="button"
                 onClick={() => {
                   setMode('signup')
                   setError('')
+                  setMessage('')
                 }}
                 className="font-semibold text-[#073B82] hover:underline"
               >
@@ -336,12 +489,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultMode 
               <button
                 type="button"
                 onClick={() => {
-                  setMode('login')
+                  setMode('otp')
                   setError('')
+                  setMessage('')
                 }}
                 className="font-semibold text-[#073B82] hover:underline"
               >
-                Sign in
+                Sign in with OTP
               </button>
             </>
           )}

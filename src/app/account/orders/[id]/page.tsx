@@ -14,7 +14,7 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
   const session = await getCustomerSession()
   if (!session) redirect('/login')
   const order = await prisma.order.findFirst({
-    where: { id: params.id, customerId: session.user.id },
+    where: { id: params.id, customerId: session.id },
     include: {
       items: { include: { product: { select: { images: { orderBy: { order: 'asc' }, take: 1 } } } } },
       statusHistory: { orderBy: { createdAt: 'asc' }, select: { id: true, status: true, createdAt: true } },

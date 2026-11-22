@@ -3,7 +3,6 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { consumeAuthRateLimit, requestAddress } from './auth-rate-limit'
-import { isCustomerEmailConfigured } from './customer-email'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -29,9 +28,7 @@ export const authOptions: NextAuthOptions = {
           const customer = await prisma.customer.findFirst({
             where: { email: { equals: email, mode: 'insensitive' } },
           })
-          if (!customer) return null
-          // Temporarily disable email verification check until email is configured
-          // if (isCustomerEmailConfigured() && !customer.emailVerifiedAt) return null
+          if (!customer || !customer.password) return null
           if (!(await bcrypt.compare(password, customer.password))) return null
           return { id: customer.id, email: customer.email, name: customer.name, role: 'customer' as const }
         }

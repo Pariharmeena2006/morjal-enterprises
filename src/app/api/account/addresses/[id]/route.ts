@@ -17,10 +17,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const body = await request.json()
     const data = normalizeAddress(body)
     if (!data) return NextResponse.json({ error: 'Check the address fields, phone number, and PIN code.' }, { status: 400 })
-    const current = await prisma.customerAddress.findFirst({ where: { id: params.id, customerId: session.user.id }, select: { id: true } })
+    const current = await prisma.customerAddress.findFirst({ where: { id: params.id, customerId: session.id }, select: { id: true } })
     if (!current) return NextResponse.json({ error: 'Address not found.' }, { status: 404 })
     const address = await prisma.$transaction(async (tx) => {
-      if (data.isDefault) await tx.customerAddress.updateMany({ where: { customerId: session.user.id }, data: { isDefault: false } })
+      if (data.isDefault) await tx.customerAddress.updateMany({ where: { customerId: session.id }, data: { isDefault: false } })
       return tx.customerAddress.update({ where: { id: params.id }, data: { ...data, isDefault: data.isDefault } })
     })
     return NextResponse.json(address)
@@ -34,12 +34,12 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
   const session = await getCustomerSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    const address = await prisma.customerAddress.findFirst({ where: { id: params.id, customerId: session.user.id }, select: { id: true, isDefault: true } })
+    const address = await prisma.customerAddress.findFirst({ where: { id: params.id, customerId: session.id }, select: { id: true, isDefault: true } })
     if (!address) return NextResponse.json({ error: 'Address not found.' }, { status: 404 })
     await prisma.$transaction(async (tx) => {
       await tx.customerAddress.delete({ where: { id: address.id } })
       if (address.isDefault) {
-        const next = await tx.customerAddress.findFirst({ where: { customerId: session.user.id }, orderBy: { updatedAt: 'desc' }, select: { id: true } })
+        const next = await tx.customerAddress.findFirst({ where: { customerId: session.id }, orderBy: { updatedAt: 'desc' }, select: { id: true } })
         if (next) await tx.customerAddress.update({ where: { id: next.id }, data: { isDefault: true } })
       }
     })

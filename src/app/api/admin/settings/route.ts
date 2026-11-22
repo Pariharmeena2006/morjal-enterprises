@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminSession } from '@/lib/customer-auth'
+import { getAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 
 const editableFields = [

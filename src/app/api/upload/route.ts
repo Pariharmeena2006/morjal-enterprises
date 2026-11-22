@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
-import { getAdminSession } from '@/lib/customer-auth'
+import { getAdminSession } from '@/lib/admin-auth'
 
 export const runtime = 'nodejs'
 

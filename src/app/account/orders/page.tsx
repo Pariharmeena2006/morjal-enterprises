@@ -21,10 +21,10 @@ export default async function CustomerOrdersPage({ searchParams = {} }: OrdersPa
   if (!session) redirect('/login')
   const status = filters.some((filter) => filter.key === searchParams.status) ? searchParams.status! : 'all'
   const active = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out for delivery']
-  const where = status === 'active' ? { customerId: session.user.id, orderStatus: { in: active } }
-    : status === 'delivered' ? { customerId: session.user.id, orderStatus: 'delivered' }
-      : status === 'cancelled' ? { customerId: session.user.id, orderStatus: { in: ['cancelled', 'returned'] } }
-        : { customerId: session.user.id }
+  const where = status === 'active' ? { customerId: session.id, orderStatus: { in: active } }
+    : status === 'delivered' ? { customerId: session.id, orderStatus: 'delivered' }
+      : status === 'cancelled' ? { customerId: session.id, orderStatus: { in: ['cancelled', 'returned'] } }
+        : { customerId: session.id }
   const orders = await prisma.order.findMany({
     where,
     orderBy: { createdAt: 'desc' },

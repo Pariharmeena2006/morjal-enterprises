@@ -10,14 +10,14 @@ const activeStatuses = ['pending', 'confirmed', 'processing', 'packed', 'shipped
 
 export default async function AccountDashboardPage() {
   const session = await getCustomerSession()
-  if (!session) redirect('/login')
+  if (!session) redirect('/login-otp')
   const [customer, totalOrders, activeOrders, deliveredOrders, recentOrders, addressCount] = await Promise.all([
-    prisma.customer.findUnique({ where: { id: session.user.id }, select: { name: true, email: true, phone: true, emailVerifiedAt: true } }),
-    prisma.order.count({ where: { customerId: session.user.id } }),
-    prisma.order.count({ where: { customerId: session.user.id, orderStatus: { in: activeStatuses } } }),
-    prisma.order.count({ where: { customerId: session.user.id, orderStatus: 'delivered' } }),
-    prisma.order.findMany({ where: { customerId: session.user.id }, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, orderNumber: true, createdAt: true, total: true, orderStatus: true, paymentStatus: true } }),
-    prisma.customerAddress.count({ where: { customerId: session.user.id } }),
+    prisma.customer.findUnique({ where: { id: session.id }, select: { name: true, email: true, phone: true, emailVerifiedAt: true } }),
+    prisma.order.count({ where: { customerId: session.id } }),
+    prisma.order.count({ where: { customerId: session.id, orderStatus: { in: activeStatuses } } }),
+    prisma.order.count({ where: { customerId: session.id, orderStatus: 'delivered' } }),
+    prisma.order.findMany({ where: { customerId: session.id }, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, orderNumber: true, createdAt: true, total: true, orderStatus: true, paymentStatus: true } }),
+    prisma.customerAddress.count({ where: { customerId: session.id } }),
   ])
 
   return <div><div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-3xl font-bold text-[#062653]">Hello, {customer?.name || 'there'}</h1><p className="mt-2 text-sm text-slate-600">Your account, saved delivery details, and order history.</p></div><Link href="/account/orders" className="inline-flex items-center gap-2 rounded-xl bg-[#062653] px-4 py-2.5 text-sm font-semibold text-white">My orders <ArrowRight className="h-4 w-4" /></Link></div>

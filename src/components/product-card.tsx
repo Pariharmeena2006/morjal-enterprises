@@ -1,10 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Check, MessageCircle, ShoppingCart as CartIcon } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 import { addProductToCart } from '@/lib/cart'
@@ -31,7 +30,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
   const [imageFailed, setImageFailed] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<'addToCart' | 'buyNow' | null>(null)
-  const { data: session } = useSession()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
   const mainImage = product.images?.[0]
   const outOfStock = product.isOutOfStock || product.stockQuantity < 1
@@ -41,8 +40,20 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
     ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100)
     : 0
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/account/profile', { cache: 'no-store' })
+        setIsAuthenticated(response.ok)
+      } catch {
+        setIsAuthenticated(false)
+      }
+    }
+    checkAuth()
+  }, [])
+
   const addToCart = () => {
-    if (session?.user?.role !== 'customer') {
+    if (!isAuthenticated) {
       setPendingAction('addToCart')
       setAuthModalOpen(true)
       return
@@ -54,7 +65,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
   }
 
   const buyNow = () => {
-    if (session?.user?.role !== 'customer') {
+    if (!isAuthenticated) {
       setPendingAction('buyNow')
       setAuthModalOpen(true)
       return
@@ -66,6 +77,8 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
   }
 
   const handleAuthSuccess = () => {
+    setAuthModalOpen(false)
+    setIsAuthenticated(true)
     if (pendingAction === 'addToCart') {
       addToCart()
     } else if (pendingAction === 'buyNow') {
@@ -141,6 +154,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
           setPendingAction(null)
         }}
         onAuthSuccess={handleAuthSuccess}
+        defaultMode="otp"
         redirectTo={pendingAction === 'buyNow' ? '/checkout' : undefined}
       />
     </>

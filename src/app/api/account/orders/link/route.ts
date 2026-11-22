@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (!orderNumber || !/^[a-zA-Z0-9-]{32,64}$/.test(token)) {
       return NextResponse.json({ error: 'Enter the order number and private tracking code from your guest-order confirmation.' }, { status: 400 })
     }
-    const customer = await prisma.customer.findUnique({ where: { id: session.user.id }, select: { id: true, phone: true } })
+    const customer = await prisma.customer.findUnique({ where: { id: session.id }, select: { id: true, phone: true } })
     if (!customer) return NextResponse.json({ error: 'Customer account not found.' }, { status: 404 })
     const tokenHash = createHash('sha256').update(token).digest('hex')
     const order = await prisma.order.findUnique({ where: { orderNumber }, select: { id: true, customerId: true, customerPhone: true, trackingTokenHash: true } })

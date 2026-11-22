@@ -56,6 +56,7 @@ export default function CustomerLoginPage() {
           <Button type="submit" disabled={loading} className="w-full">{loading ? 'Signing in…' : 'Sign in'}</Button>
         </form>
         <p className="mt-5 text-center text-sm text-slate-600">New to MORJAL? <Link href="/signup" className="font-semibold text-[#073B82] hover:underline">Create account</Link></p>
+        <p className="mt-2 text-center text-sm text-slate-600">Passwordless? <Link href={callbackUrl !== '/account' ? `/login-otp?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/login-otp'} className="font-semibold text-[#073B82] hover:underline">Sign in with email OTP</Link></p>
       </div>
     </main>
   )

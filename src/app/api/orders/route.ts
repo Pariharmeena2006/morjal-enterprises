@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash, createHmac, randomBytes } from 'crypto'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCustomerSession } from '@/lib/customer-auth'
 import { prisma } from '@/lib/prisma'
 
 type RequestedItem = { productId?: string; id?: string; quantity?: number }
@@ -9,14 +8,14 @@ type RequestedItem = { productId?: string; id?: string; quantity?: number }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const session = await getServerSession(authOptions)
+    const session = await getCustomerSession()
 
     // Require customer authentication
-    if (!session || session.user?.role !== 'customer') {
+    if (!session) {
       return NextResponse.json({ error: 'Please sign in to place an order.' }, { status: 401 })
     }
 
-    const customerId = session.user.id
+    const customerId = session.id
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim()
     if (!idempotencyKey || !/^[a-zA-Z0-9-]{32,64}$/.test(idempotencyKey)) {
       return NextResponse.json({ error: 'Refresh checkout and try placing the order again.' }, { status: 400 })

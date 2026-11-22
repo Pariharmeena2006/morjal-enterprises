@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         : {}
 
   const orders = await prisma.order.findMany({
-    where: { customerId: session.user.id, ...statusWhere },
+    where: { customerId: session.id, ...statusWhere },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,

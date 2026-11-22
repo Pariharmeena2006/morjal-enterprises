@@ -3,18 +3,18 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { signOut, useSession } from 'next-auth/react'
+import { usePathname, useRouter } from 'next/navigation'
 import { Search, ShoppingCart, Menu, X, UserRound } from 'lucide-react'
 import { Button } from './ui/button'
 import { readCart } from '@/lib/cart'
 
 export default function Header() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cartCount, setCartCount] = useState(0)
-  const { data: session, status } = useSession()
-  const customer = session?.user?.role === 'customer'
+  const [customer, setCustomer] = useState<{ id: string; email: string; name: string } | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const updateCartCount = () => {
@@ -30,6 +30,23 @@ export default function Header() {
 
     window.addEventListener('cart-updated', handleCartUpdate)
     window.addEventListener('storage', handleCartUpdate)
+
+    // Check customer auth token
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/account/profile', { cache: 'no-store' })
+        if (response.ok) {
+          const data = await response.json()
+          setCustomer(data)
+        } else {
+          setCustomer(null)
+        }
+      } catch {
+        setCustomer(null)
+      }
+    }
+
+    checkAuth()
 
     return () => {
       window.removeEventListener('cart-updated', handleCartUpdate)
@@ -83,14 +100,14 @@ export default function Header() {
                   <Link href="/account/orders" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">My Orders</Link>
                   <Link href="/account/addresses" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">Saved Addresses</Link>
                   <Link href="/account/profile" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">Profile</Link>
-                  <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="w-full rounded-lg px-3 py-2 text-left text-sm text-navy hover:bg-blue-50">Logout</button>
+                  <button type="button" onClick={async () => { await fetch('/api/auth/otp/logout', { method: 'POST' }); router.replace('/'); router.refresh(); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-navy hover:bg-blue-50">Logout</button>
                 </div>
               </details>
-            ) : status === 'authenticated' ? (
+            ) : isAdmin ? (
               <Link href="/admin" aria-label="Admin dashboard" className="hidden text-xs font-semibold text-navy hover:text-gold sm:inline">Admin</Link>
             ) : (
               <div className="flex items-center gap-2">
-                <Link href="/login" className="rounded-lg px-2 py-2 text-xs font-semibold text-navy hover:text-gold sm:block">Login</Link>
+                <Link href="/login-otp" className="rounded-lg px-2 py-2 text-xs font-semibold text-navy hover:text-gold sm:block">Login</Link>
                 <Link href="/signup" className="rounded-lg bg-[#073B82] px-3 py-2 text-xs font-semibold text-white hover:bg-navy sm:block">Create account</Link>
               </div>
             )}
@@ -139,11 +156,9 @@ export default function Header() {
                 <Link href="/account" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Account</Link>
                 <Link href="/account/orders" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Orders</Link>
                 <Link href="/account/addresses" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Saved Addresses</Link>
-                <button type="button" className="py-2 text-left text-lg font-medium text-navy hover:text-gold" onClick={() => signOut({ callbackUrl: '/' })}>Logout</button>
-              </> : status === 'authenticated' ? (
-                <Link href="/admin" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Admin dashboard</Link>
-              ) : <>
-                <Link href="/login" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Login</Link>
+                <button type="button" className="py-2 text-left text-lg font-medium text-navy hover:text-gold" onClick={async () => { await fetch('/api/auth/otp/logout', { method: 'POST' }); router.replace('/'); router.refresh(); setIsMenuOpen(false); }}>Logout</button>
+              </> : <>
+                <Link href="/login-otp" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Login</Link>
                 <Link href="/signup" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Create account</Link>
               </>}
             </div>

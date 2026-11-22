@@ -20,9 +20,9 @@ model Admin {
 model Customer {
   id              String                   @id @default(cuid())
   email           String                   @unique
-  password        String
+  password        String?
   name            String
-  phone           String
+  phone           String?
   emailVerifiedAt DateTime?
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
@@ -30,6 +30,7 @@ model Customer {
   orders          Order[]
   emailTokens     EmailVerificationToken[]
   passwordTokens  PasswordResetToken[]
+  loginOTPs       CustomerLoginOTP[]
 
   @@index([phone])
 }
@@ -86,6 +87,21 @@ model AuthRateLimit {
 
   @@unique([keyHash, action])
   @@index([windowStartedAt])
+}
+
+model CustomerLoginOTP {
+  id         String   @id @default(cuid())
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  email      String
+  otpHash    String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([email, expiresAt])
+  @@index([customerId])
 }
 
 model Product {

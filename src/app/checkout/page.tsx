@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,7 +15,7 @@ import { readCart, type CartItem } from '@/lib/cart'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -28,6 +27,7 @@ export default function CheckoutPage() {
     landmark: '',
     orderNotes: '',
   })
+  const [customerPhone, setCustomerPhone] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cod')
   const [loading, setLoading] = useState(false)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -39,22 +39,20 @@ export default function CheckoutPage() {
   const [codEnabled, setCodEnabled] = useState(true)
   const [savedAddresses, setSavedAddresses] = useState<Array<{ id: string; label: string; fullName: string; phone: string; address: string; city: string; state: string; pinCode: string; landmark: string | null; isDefault: boolean }>>([])
 
-  // Redirect to login if not authenticated
+  // Require a customer session (OTP or password) before checkout
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login?callbackUrl=/checkout')
-    }
-  }, [status, router])
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    if (status !== 'authenticated') return
-    setCartItems(readCart())
+    let cancelled = false
     fetch('/api/account/profile', { cache: 'no-store' })
       .then(async (response) => {
-        if (!response.ok) return null
+        if (cancelled) return
+        if (!response.ok) {
+          setAuthState('unauthenticated')
+          return
+        }
         const customer = await response.json()
+        setAuthState('authenticated')
         setFormData((current) => ({ ...current, fullName: customer.name || current.fullName, phone: customer.phone || current.phone, email: customer.email || current.email }))
+        setCustomerPhone(customer.phone || '')
         const addressResponse = await fetch('/api/account/addresses', { cache: 'no-store' })
         if (addressResponse.ok) {
           const addresses = await addressResponse.json()
@@ -64,9 +62,25 @@ export default function CheckoutPage() {
             if (primary) setFormData((current) => ({ ...current, fullName: primary.fullName, phone: primary.phone, address: primary.address, city: primary.city, state: primary.state, pinCode: primary.pinCode, landmark: primary.landmark || '' }))
           }
         }
-        return customer
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!cancelled) setAuthState('unauthenticated')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (authState === 'unauthenticated') {
+      router.push('/login-otp?callbackUrl=/checkout')
+    }
+  }, [authState, router])
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    if (authState !== 'authenticated') return
+    setCartItems(readCart())
     fetch('/api/store-settings')
       .then((response) => response.json())
       .then((settings) => {
@@ -74,7 +88,7 @@ export default function CheckoutPage() {
         setCodEnabled(settings.codEnabled !== false)
       })
       .catch(() => undefined)
-  }, [])
+  }, [authState])
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const shippingCharge = subtotal > 0 ? (subtotal >= freeShippingThreshold ? 0 : 99) : 0
@@ -141,7 +155,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (status === 'loading') {
+  if (authState !== 'authenticated') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -258,6 +272,7 @@ export default function CheckoutPage() {
                       pattern="[0-9]{10}"
                       className="mt-2 py-3 rounded-xl border-gray-300 focus:border-gold focus:ring-gold"
                     />
+                    {!customerPhone && <p className="mt-1 text-xs text-orange-600">Save your phone in account settings for faster checkout next time.</p>}
                   </div>
                   <div>
                     <Label htmlFor="email" className="text-navy font-medium">Email Address</Label>
