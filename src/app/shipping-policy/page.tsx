@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Truck, Package, Clock } from 'lucide-react'
+import SupportContact from '@/components/support-contact'
 
 export default function ShippingPolicyPage() {
   return (
@@ -98,16 +99,7 @@ export default function ShippingPolicyPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Us</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">
-                  For any shipping-related queries, please contact our customer support team via email at info@morjalenterprises.com or call us at +91 XXXXX XXXXX.
-                </p>
-              </CardContent>
-            </Card>
+            <SupportContact />
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield } from 'lucide-react'
+import SupportContact from '@/components/support-contact'
 
 export default function PrivacyPolicyPage() {
   return (
@@ -111,18 +112,7 @@ export default function PrivacyPolicyPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Us</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">
-                  For privacy-related inquiries, contact us at:<br />
-                  Email: privacy@morjalenterprises.com<br />
-                  Phone: +91 XXXXX XXXXX
-                </p>
-              </CardContent>
-            </Card>
+            <SupportContact />
           </div>
         </div>
       </div>

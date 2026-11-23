@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { XCircle } from 'lucide-react'
+import SupportContact from '@/components/support-contact'
 
 export default function CancellationPolicyPage() {
   return (
@@ -85,18 +86,7 @@ export default function CancellationPolicyPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact for Cancellations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">
-                  Email: info@morjalenterprises.com<br />
-                  Phone: +91 XXXXX XXXXX<br />
-                  For urgent cancellations, please call us directly.
-                </p>
-              </CardContent>
-            </Card>
+            <SupportContact />
           </div>
         </div>
       </div>

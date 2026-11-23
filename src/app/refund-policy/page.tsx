@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign } from 'lucide-react'
+import SupportContact from '@/components/support-contact'
 
 export default function RefundPolicyPage() {
   return (
@@ -95,18 +96,7 @@ export default function RefundPolicyPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact for Refunds</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">
-                  Email: refunds@morjalenterprises.com<br />
-                  Phone: +91 XXXXX XXXXX<br />
-                  Please include your order number in all refund requests.
-                </p>
-              </CardContent>
-            </Card>
+            <SupportContact />
           </div>
         </div>
       </div>

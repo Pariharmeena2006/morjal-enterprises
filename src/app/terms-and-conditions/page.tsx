@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText } from 'lucide-react'
+import SupportContact from '@/components/support-contact'
 
 export default function TermsPage() {
   return (
@@ -109,18 +110,7 @@ export default function TermsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">
-                  For questions about these terms, contact us at:<br />
-                  Email: info@morjalenterprises.com<br />
-                  Phone: +91 XXXXX XXXXX
-                </p>
-              </CardContent>
-            </Card>
+            <SupportContact />
           </div>
         </div>
       </div>

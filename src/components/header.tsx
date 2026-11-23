@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Search, ShoppingCart, Menu, X, UserRound } from 'lucide-react'
+import { Search, ShoppingCart, Menu, X } from 'lucide-react'
 import { Button } from './ui/button'
 import { readCart } from '@/lib/cart'
 
@@ -72,8 +72,8 @@ export default function Header() {
               <Search className="h-5 w-5" />
             </Link>
 
-            <Link href="/account" aria-label="Customer account" className="hidden h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors hover:text-gold sm:flex">
-              <UserRound className="h-5 w-5" />
+            <Link href="/contact" aria-label="Contact us" className="hidden h-10 items-center rounded-lg px-2 text-xs font-semibold text-navy transition-colors hover:text-gold sm:flex">
+              Contact
             </Link>
 
             {/* Cart */}
@@ -116,8 +116,7 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
-              <Link href="/account" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Account</Link>
-              <Link href="/cart" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Cart</Link>
+              <Link href="/contact" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Contact Us</Link>
             </div>
           </nav>
         </div>

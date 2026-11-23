@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RotateCcw, AlertCircle } from 'lucide-react'
+import SupportContact from '@/components/support-contact'
 
 export default function ReturnPolicyPage() {
   return (
@@ -91,18 +92,7 @@ export default function ReturnPolicyPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact for Returns</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">
-                  Email: info@morjalenterprises.com<br />
-                  Phone: +91 XXXXX XXXXX<br />
-                  Please include your order number in all correspondence.
-                </p>
-              </CardContent>
-            </Card>
+            <SupportContact />
           </div>
         </div>
       </div>
