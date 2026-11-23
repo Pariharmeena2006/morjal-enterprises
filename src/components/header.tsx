@@ -3,18 +3,15 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Search, ShoppingCart, Menu, X, UserRound } from 'lucide-react'
 import { Button } from './ui/button'
 import { readCart } from '@/lib/cart'
 
 export default function Header() {
   const pathname = usePathname()
-  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cartCount, setCartCount] = useState(0)
-  const [customer, setCustomer] = useState<{ id: string; email: string; name: string } | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const updateCartCount = () => {
@@ -30,23 +27,6 @@ export default function Header() {
 
     window.addEventListener('cart-updated', handleCartUpdate)
     window.addEventListener('storage', handleCartUpdate)
-
-    // Check customer auth token
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/account/profile', { cache: 'no-store' })
-        if (response.ok) {
-          const data = await response.json()
-          setCustomer(data)
-        } else {
-          setCustomer(null)
-        }
-      } catch {
-        setCustomer(null)
-      }
-    }
-
-    checkAuth()
 
     return () => {
       window.removeEventListener('cart-updated', handleCartUpdate)
@@ -92,25 +72,9 @@ export default function Header() {
               <Search className="h-5 w-5" />
             </Link>
 
-            {customer ? (
-              <details className="relative hidden sm:block">
-                <summary aria-label="Customer account menu" className="flex h-10 cursor-pointer list-none items-center justify-center gap-2 rounded-lg px-2 text-navy transition-colors hover:text-gold"><UserRound className="h-5 w-5" /><span className="hidden text-xs font-semibold lg:inline">Account</span></summary>
-                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                  <Link href="/account" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">My Account</Link>
-                  <Link href="/account/orders" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">My Orders</Link>
-                  <Link href="/account/addresses" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">Saved Addresses</Link>
-                  <Link href="/account/profile" className="block rounded-lg px-3 py-2 text-sm text-navy hover:bg-blue-50">Profile</Link>
-                  <button type="button" onClick={async () => { await fetch('/api/auth/otp/logout', { method: 'POST' }); router.replace('/'); router.refresh(); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-navy hover:bg-blue-50">Logout</button>
-                </div>
-              </details>
-            ) : isAdmin ? (
-              <Link href="/admin" aria-label="Admin dashboard" className="hidden text-xs font-semibold text-navy hover:text-gold sm:inline">Admin</Link>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/login-otp" className="rounded-lg px-2 py-2 text-xs font-semibold text-navy hover:text-gold sm:block">Login</Link>
-                <Link href="/signup" className="rounded-lg bg-[#073B82] px-3 py-2 text-xs font-semibold text-white hover:bg-navy sm:block">Create account</Link>
-              </div>
-            )}
+            <Link href="/account" aria-label="Customer account" className="hidden h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors hover:text-gold sm:flex">
+              <UserRound className="h-5 w-5" />
+            </Link>
 
             {/* Cart */}
             <Link href="/cart" className="relative">
@@ -152,15 +116,8 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
-              {customer ? <>
-                <Link href="/account" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Account</Link>
-                <Link href="/account/orders" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Orders</Link>
-                <Link href="/account/addresses" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Saved Addresses</Link>
-                <button type="button" className="py-2 text-left text-lg font-medium text-navy hover:text-gold" onClick={async () => { await fetch('/api/auth/otp/logout', { method: 'POST' }); router.replace('/'); router.refresh(); setIsMenuOpen(false); }}>Logout</button>
-              </> : <>
-                <Link href="/login-otp" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Login</Link>
-                <Link href="/signup" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Create account</Link>
-              </>}
+              <Link href="/account" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>My Account</Link>
+              <Link href="/cart" className="py-2 text-lg font-medium text-navy hover:text-gold" onClick={() => setIsMenuOpen(false)}>Cart</Link>
             </div>
           </nav>
         </div>

@@ -7,8 +7,17 @@ import AuthSessionProvider from "@/components/auth/session-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MORJAL Enterprises - Electrical Safety Products",
-  description: "Premium electrical safety equipment and PPE for industrial and workplace safety",
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://morjalenterprises.in'),
+  title: {
+    default: 'MORJAL Enterprises - Electrical Safety Products',
+    template: '%s | MORJAL Enterprises',
+  },
+  description: 'Premium electrical safety equipment and PPE for industrial and workplace safety. Shop online with WhatsApp ordering and pan-India delivery.',
+  openGraph: {
+    siteName: 'MORJAL Enterprises',
+    type: 'website',
+    locale: 'en_IN',
+  },
 };
 
 export default function RootLayout({

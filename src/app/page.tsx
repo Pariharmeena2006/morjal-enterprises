@@ -14,8 +14,10 @@ import {
   Zap,
 } from 'lucide-react'
 import ProductCard from '@/components/product-card'
-import VideoSection from '@/components/video-section'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
+
+const VideoSection = dynamic(() => import('@/components/video-section'), { ssr: false })
 
 interface Product {
   id: string

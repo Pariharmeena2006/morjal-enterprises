@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, PackageCheck, Save, Truck } from 'lucide-react'
+import WhatsAppIcon from '@/components/whatsapp-icon'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -39,7 +40,7 @@ interface OrderDetails {
   statusHistory: Array<{ id: string; status: string; note: string | null; createdAt: string }>
 }
 
-const orderStatuses = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out for delivery', 'delivered', 'cancelled', 'returned']
+const orderStatuses = ['enquiry', 'pending', 'confirmed', 'processing', 'packed', 'shipped', 'out for delivery', 'delivered', 'cancelled', 'returned']
 const paymentStatuses = ['pending', 'paid', 'failed', 'refunded']
 
 export default function AdminOrderDetailPage() {
@@ -209,7 +210,19 @@ export default function AdminOrderDetailPage() {
             <CardHeader><CardTitle className="flex items-center gap-2"><PackageCheck className="h-5 w-5 text-navy" />Fulfilment</CardTitle></CardHeader>
             <CardContent>
               {order.shiprocketOrderId && <p className="mb-4 rounded-lg bg-blue-50 p-3 text-xs text-blue-900">Shiprocket order: {order.shiprocketOrderId}{order.shipmentId ? ` · Shipment ${order.shipmentId}` : ''}{order.shiprocketOrderId === 'pending' ? ' · Needs reconciliation' : ''}</p>}
-              <Button type="button" variant="outline" className="mb-4 w-full" onClick={createShipment} disabled={creatingShipment || Boolean(order.shiprocketOrderId) || !['confirmed', 'processing', 'packed'].includes(order.orderStatus)}><Truck className="mr-2 h-4 w-4" />{creatingShipment ? 'Contacting Shiprocket…' : order.shiprocketOrderId ? 'Shiprocket request recorded' : 'Create Shiprocket shipment'}</Button>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {order.customerPhone && (
+                  <a
+                    href={`https://wa.me/${order.customerPhone.replace(/\D/g, '').replace(/^(?!91)(?=\d{10}$)/, '91')}?text=${encodeURIComponent(`Hello ${order.customerName}, regarding your MORJAL Enterprises order enquiry ${order.orderNumber}.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1eb856]"
+                  >
+                    <WhatsAppIcon className="h-4 w-4" /> Contact Customer on WhatsApp
+                  </a>
+                )}
+                <Button type="button" variant="outline" className="flex-1" onClick={createShipment} disabled={creatingShipment || Boolean(order.shiprocketOrderId) || !['enquiry', 'confirmed', 'processing', 'packed'].includes(order.orderStatus)}><Truck className="mr-2 h-4 w-4" />{creatingShipment ? 'Contacting Shiprocket…' : order.shiprocketOrderId ? 'Shiprocket request recorded' : 'Create Shiprocket shipment'}</Button>
+              </div>
               {order.shipmentId && order.shipmentId !== 'pending' && <Button type="button" variant="outline" className="mb-4 w-full" onClick={refreshTracking} disabled={refreshingTracking}>{refreshingTracking ? 'Refreshing…' : 'Refresh tracking from Shiprocket'}</Button>}
               <form onSubmit={saveOrder} className="space-y-4">
                 <div>

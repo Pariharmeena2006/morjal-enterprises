@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { HelpCircle, MessageCircle } from 'lucide-react'
+import { prisma } from '@/lib/prisma'
+import { normalizeWhatsAppNumber, buildWhatsAppUrl } from '@/lib/whatsapp'
 
 const faqs = [
   {
@@ -36,7 +38,13 @@ const faqs = [
   }
 ]
 
-export default function FAQPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function FAQPage() {
+  const settings = await prisma.websiteSettings.findFirst({ select: { whatsappNumber: true, contactPhone: true } })
+  const whatsapp = normalizeWhatsAppNumber(settings?.whatsappNumber || process.env.WHATSAPP_NUMBER)
+  const phone = (settings?.contactPhone || '').replace(/\D/g, '') || whatsapp.replace(/^91/, '')
+  const whatsappHref = buildWhatsAppUrl(whatsapp, '') || '/contact'
   return (
     <div className="min-h-screen bg-grey-light py-16">
       <div className="container mx-auto px-4">
@@ -73,10 +81,10 @@ export default function FAQPage() {
               Can&apos;t find the answer you&apos;re looking for? Please reach out to our customer support team.
             </p>
             <div className="flex justify-center space-x-4">
-              <a href="tel:+919694142555" className="inline-flex items-center px-6 py-3 bg-gold text-white rounded-md hover:bg-gold-dark transition-colors">
+              <a href={phone ? `tel:+${phone.startsWith('91') ? phone : `91${phone}`}` : '/contact'} className="inline-flex items-center px-6 py-3 bg-gold text-white rounded-md hover:bg-gold-dark transition-colors">
                 Call Us
               </a>
-              <a href="https://wa.me/919694142555" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-white px-6 py-3 text-navy transition-colors hover:bg-gray-100">
+              <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md bg-white px-6 py-3 text-navy transition-colors hover:bg-gray-100">
                 <MessageCircle className="h-4 w-4" /> WhatsApp Us
               </a>
             </div>

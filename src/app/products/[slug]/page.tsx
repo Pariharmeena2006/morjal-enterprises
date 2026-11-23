@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Play, Star, Video, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react'
+import { ShoppingCart, Minus, Plus, ArrowLeft, Play, Star, Video, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { addProductToCart } from '@/lib/cart'
+import WhatsAppIcon from '@/components/whatsapp-icon'
+import { getStorefrontSettings, whatsappChatUrl } from '@/lib/storefront'
 
 interface Product {
   id: string
@@ -45,9 +47,11 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [cartNotice, setCartNotice] = useState('')
   const [showImagePreview, setShowImagePreview] = useState(false)
+  const [whatsappNumber, setWhatsappNumber] = useState('')
 
   useEffect(() => {
     fetchProduct()
+    getStorefrontSettings().then((settings) => setWhatsappNumber(settings.whatsappNumber || ''))
   }, [params.slug])
 
   const fetchProduct = async () => {
@@ -321,10 +325,16 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             {cartNotice && <p role="status" className="mb-3 text-xs sm:text-sm font-medium text-green-700">{cartNotice}</p>}
 
             {/* WhatsApp Enquiry */}
-            <a href={`https://wa.me/919694142555?text=${encodeURIComponent(`Hello, I am interested in ${product.name}. Please share more details. Product: /products/${product.slug}`)}`} target="_blank" rel="noreferrer" className="block">
-            <Button type="button" variant="outline" className="w-full text-green-600 border-green-600 hover:bg-green-50 py-3 sm:py-4 rounded-xl text-sm sm:text-base">
-              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              Enquire on WhatsApp
+            <a
+              href={whatsappChatUrl(whatsappNumber, `Hello, I am interested in ${product.name}. Please share more details. Product: /products/${product.slug}`) || '/contact'}
+              target="_blank"
+              rel="noreferrer"
+              className="block"
+              aria-label="Enquire about this product on WhatsApp"
+            >
+            <Button type="button" variant="outline" className="w-full border-[#25D366] text-[#128C7E] hover:bg-[#25D366]/10 py-3 sm:py-4 rounded-xl text-sm sm:text-base">
+              <WhatsAppIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              WhatsApp Enquiry
             </Button>
             </a>
 
