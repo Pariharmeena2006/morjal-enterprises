@@ -267,13 +267,13 @@ export default function CheckoutPage() {
                     </div>
                   </label>
                   <label className={`flex cursor-pointer items-start rounded-xl border-2 p-3 transition-all sm:items-center sm:p-4 ${paymentMethod === 'easebuzz' ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-navy'}`}>
-                    <input type="radio" name="paymentMethod" value="easebuzz" checked={paymentMethod === 'easebuzz'} onChange={(e) => setPaymentMethod(e.target.value)} className="mr-4" />
+                    <input type="radio" name="paymentMethod" value="easebuzz" checked={paymentMethod === 'easebuzz'} onChange={(e) => setPaymentMethod(e.target.value)} disabled className="mr-4" />
                     <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy sm:mr-4 sm:h-12 sm:w-12">
                       <span className="text-xs font-bold text-gold">PAY</span>
                     </div>
                     <div>
-                      <p className="font-semibold text-navy">Online Payment</p>
-                      <p className="text-sm text-text">UPI, cards & netbanking via Easebuzz — secured checkout</p>
+                      <p className="font-semibold text-navy">Online Payment <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">Coming soon</span></p>
+                      <p className="text-sm text-text">Temporarily unavailable — please use Cash on Delivery</p>
                     </div>
                   </label>
                 </div>

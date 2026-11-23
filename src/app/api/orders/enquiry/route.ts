@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash, createHmac, randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { consumeAuthRateLimit, requestAddress } from '@/lib/auth-rate-limit'
-import { getWhatsAppNumber, buildWhatsAppUrl } from '@/lib/whatsapp'
+import { getBusinessWhatsAppNumber, buildWhatsAppUrl } from '@/lib/whatsapp'
 import { formatPrice } from '@/lib/utils'
 
 type RequestedItem = { productId?: string; id?: string; quantity?: number }
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Build the pre-filled WhatsApp enquiry message from the saved order data
-    const whatsappNumber = await getWhatsAppNumber()
+    const whatsappNumber = await getBusinessWhatsAppNumber()
     const itemLines = pricedItems.map(({ requested, product }, index) =>
       `${index + 1}. ${product.name}\n   Quantity: ${requested.quantity}\n   Price: ${formatPrice(product.sellingPrice * requested.quantity)}`
     ).join('\n')

@@ -36,3 +36,10 @@ export async function getWhatsAppNumber() {
     return ''
   }
 }
+
+/** Official MORJAL Enterprises WhatsApp number (+91 9694142555). */
+export const OFFICIAL_WHATSAPP_NUMBER = '919694142555'
+
+export async function getBusinessWhatsAppNumber() {
+  return (await getWhatsAppNumber()) || OFFICIAL_WHATSAPP_NUMBER
+}

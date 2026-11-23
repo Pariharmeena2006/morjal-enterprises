@@ -8,6 +8,8 @@ interface StorefrontSettings {
   codEnabled?: boolean
 }
 
+export const DEFAULT_WHATSAPP_NUMBER = '919694142555'
+
 let cached: Promise<StorefrontSettings> | null = null
 
 /** Fetches public store settings once per page load and caches the promise. */
@@ -15,6 +17,7 @@ export function getStorefrontSettings(): Promise<StorefrontSettings> {
   if (!cached) {
     cached = fetch('/api/store-settings')
       .then((response) => (response.ok ? response.json() : {}))
+      .then((settings: StorefrontSettings) => ({ ...settings, whatsappNumber: settings.whatsappNumber || DEFAULT_WHATSAPP_NUMBER }))
       .catch(() => ({}))
   }
   return cached
