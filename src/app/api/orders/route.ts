@@ -9,13 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const session = await getCustomerSession()
-
-    // Require customer authentication
-    if (!session) {
-      return NextResponse.json({ error: 'Please sign in to place an order.' }, { status: 401 })
-    }
-
-    const customerId = session.id
+    const customerId = session?.id || null
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim()
     if (!idempotencyKey || !/^[a-zA-Z0-9-]{32,64}$/.test(idempotencyKey)) {
       return NextResponse.json({ error: 'Refresh checkout and try placing the order again.' }, { status: 400 })
@@ -48,8 +42,8 @@ export async function POST(request: NextRequest) {
     if (!/^[0-9]{10}$/.test(body.phone) || !/^[0-9]{6}$/.test(body.pinCode)) {
       return NextResponse.json({ error: 'Enter a valid 10-digit phone number and 6-digit PIN code.' }, { status: 400 })
     }
-    if (body.paymentMethod !== 'cod') {
-      return NextResponse.json({ error: 'Online payments are not available yet. Please select Cash on Delivery.' }, { status: 400 })
+    if (!['cod', 'easebuzz'].includes(body.paymentMethod)) {
+      return NextResponse.json({ error: 'Please select Cash on Delivery or online payment.' }, { status: 400 })
     }
     if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {
       return NextResponse.json({ error: 'Your cart is empty.' }, { status: 400 })
@@ -121,7 +115,7 @@ export async function POST(request: NextRequest) {
           customerPhone: body.phone.trim(), address: body.address.trim(), city: body.city.trim(),
           state: body.state.trim(), pinCode: body.pinCode.trim(), landmark: body.landmark?.trim() || null,
           orderNotes: body.orderNotes?.trim() || null, subtotal, shippingCharge, discount: 0,
-          total: subtotal + shippingCharge, paymentMethod: 'cod', paymentStatus: 'pending', orderStatus: 'pending',
+          total: subtotal + shippingCharge, paymentMethod: body.paymentMethod, paymentStatus: 'pending', orderStatus: 'pending',
           idempotencyKey,
           trackingTokenHash: createHash('sha256').update(trackingToken).digest('hex'),
           customerId,

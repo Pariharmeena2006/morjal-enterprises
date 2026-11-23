@@ -9,14 +9,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const orderNumber = typeof body.orderNumber === 'string' ? body.orderNumber.trim() : ''
     const token = typeof body.token === 'string' ? body.token.trim() : ''
-    if (!orderNumber || !/^[a-zA-Z0-9-]{32,64}$/.test(token)) {
+    const txnid = typeof body.txnid === 'string' ? body.txnid.trim() : ''
+    const tokenHash = token && /^[a-zA-Z0-9-]{32,64}$/.test(token) ? createHash('sha256').update(token).digest('hex') : null
+    if (!orderNumber || (!tokenHash && !txnid)) {
       return NextResponse.json({ error: 'Order not found or tracking link is invalid.' }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
     }
 
     const order = await prisma.order.findFirst({
       where: {
         orderNumber,
-        trackingTokenHash: createHash('sha256').update(token).digest('hex'),
+        OR: [
+          ...(tokenHash ? [{ trackingTokenHash: tokenHash }] : []),
+          ...(txnid ? [{ razorpayOrderId: txnid }] : []),
+        ],
       },
       select: {
         orderNumber: true,
@@ -25,6 +30,19 @@ export async function POST(request: NextRequest) {
         trackingNumber: true,
         courierName: true,
         estimatedDelivery: true,
+        customerName: true,
+        customerPhone: true,
+        address: true,
+        city: true,
+        state: true,
+        pinCode: true,
+        landmark: true,
+        subtotal: true,
+        shippingCharge: true,
+        total: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        razorpayOrderId: true,
         items: { select: { productName: true, quantity: true } },
         statusHistory: { orderBy: { createdAt: 'asc' }, select: { status: true, createdAt: true } },
       },

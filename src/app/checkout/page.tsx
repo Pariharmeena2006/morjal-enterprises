@@ -85,22 +85,27 @@ export default function CheckoutPage() {
     try {
       const requestKey = idempotencyKey || window.crypto.randomUUID()
       if (!idempotencyKey) setIdempotencyKey(requestKey)
-      const response = await fetch('/api/orders/enquiry', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestKey },
         body: JSON.stringify({ ...formData, paymentMethod, items: cartItems.map((item) => ({ productId: item.productId, quantity: item.quantity })) }),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Unable to save your order enquiry')
-      setEnquiry(data)
+      if (!response.ok) throw new Error(data.error || 'Unable to place your order')
       localStorage.removeItem('cart')
       window.dispatchEvent(new Event('cart-updated'))
-      setCartItems([])
-      if (data.whatsappUrl) {
-        // Open WhatsApp; the customer must press Send inside WhatsApp.
-        window.open(data.whatsappUrl, '_blank', 'noopener,noreferrer')
-        setWhatsappFallbackUrl(data.whatsappUrl)
+      if (paymentMethod === 'easebuzz') {
+        const payRes = await fetch('/api/orders/easebuzz/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderNumber: data.orderNumber, trackingToken: data.trackingToken }),
+        })
+        const payData = await payRes.json()
+        if (!payRes.ok || !payData.paymentUrl) throw new Error(payData.error || 'Unable to start online payment')
+        window.location.href = payData.paymentUrl
+        return
       }
+      window.location.href = `/order-success?order=${encodeURIComponent(data.orderNumber)}&token=${encodeURIComponent(data.trackingToken)}`
     } catch (error) {
       setCheckoutError(error instanceof Error ? error.message : 'Unable to save your order enquiry. Please try again.')
       setLoading(false)
@@ -261,14 +266,14 @@ export default function CheckoutPage() {
                       <p className="text-sm text-text">Pay when your order is delivered</p>
                     </div>
                   </label>
-                  <label className={`flex cursor-pointer items-start rounded-xl border-2 p-3 transition-all sm:items-center sm:p-4 ${paymentMethod === 'upi' ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-navy'}`}>
-                    <input type="radio" name="paymentMethod" value="upi" checked={paymentMethod === 'upi'} onChange={(e) => setPaymentMethod(e.target.value)} className="mr-4" />
+                  <label className={`flex cursor-pointer items-start rounded-xl border-2 p-3 transition-all sm:items-center sm:p-4 ${paymentMethod === 'easebuzz' ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-navy'}`}>
+                    <input type="radio" name="paymentMethod" value="easebuzz" checked={paymentMethod === 'easebuzz'} onChange={(e) => setPaymentMethod(e.target.value)} className="mr-4" />
                     <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy sm:mr-4 sm:h-12 sm:w-12">
-                      <span className="text-xs font-bold text-gold">UPI</span>
+                      <span className="text-xs font-bold text-gold">PAY</span>
                     </div>
                     <div>
-                      <p className="font-semibold text-navy">UPI / Online</p>
-                      <p className="text-sm text-text">Payment details will be shared on WhatsApp</p>
+                      <p className="font-semibold text-navy">Online Payment</p>
+                      <p className="text-sm text-text">UPI, cards & netbanking via Easebuzz — secured checkout</p>
                     </div>
                   </label>
                 </div>
