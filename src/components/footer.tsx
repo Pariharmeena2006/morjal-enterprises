@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { Facebook, Instagram, Twitter, Linkedin, ArrowUp, MapPin, Phone, Mail } from 'lucide-react'
+import { Facebook, Instagram, Twitter, Linkedin, ArrowUp, MapPin, Phone, Mail, Globe } from 'lucide-react'
 
 type StoreDetails = {
   contactPhone?: string | null
@@ -40,7 +40,7 @@ export default function Footer() {
               <Image src="/logo.png" alt="MORJAL Enterprises, Kaprain, Bundi" fill sizes="176px" className="object-contain" />
             </div>
             <p className="text-gray-300 text-sm mb-4">
-              Based in Kaprain, Bundi, Rajasthan, Morjal Enterprises is a trusted provider of premium electrical safety equipment for industrial and workplace protection.
+              MORJAL Enterprises — owned and operated by Devraj Mina, based in Kaprain, Bundi, Rajasthan, supplying premium electrical safety equipment for industrial and workplace protection.
             </p>
           </div>
 
@@ -121,7 +121,11 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-gold flex-shrink-0" />
-                {details.contactEmail ? <a href={`mailto:${details.contactEmail}`}>{details.contactEmail}</a> : <span>Contact details to be updated</span>}
+                {details.contactEmail ? <a href={`mailto:${details.contactEmail}`}>{details.contactEmail}</a> : <a href="mailto:morjalenterprises555@gmail.com">morjalenterprises555@gmail.com</a>}
+              </li>
+              <li className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-gold flex-shrink-0" />
+                <a href="https://morjalenterprises.in" target="_blank" rel="noreferrer" className="break-all">morjalenterprises.in</a>
               </li>
             </ul>
 
@@ -147,7 +151,7 @@ export default function Footer() {
         <div className="border-t border-gray-700 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm mb-4 md:mb-0">
-              © {new Date().getFullYear()} MORJAL Enterprises. All rights reserved.
+              © {new Date().getFullYear()} MORJAL Enterprises. Owner: Devraj Mina. All rights reserved.
             </p>
             <button
               onClick={scrollToTop}

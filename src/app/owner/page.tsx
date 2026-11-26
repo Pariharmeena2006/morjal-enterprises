@@ -28,10 +28,10 @@ export default async function OwnerPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <h1 className="text-4xl font-bold mb-4">
-                {settings.ownerName || 'Owner Name'}
+                {settings.ownerName || 'Devraj Mina'}
               </h1>
               <p className="text-xl text-gold mb-4">
-                {settings.ownerTitle || 'Founder & CEO'}
+                {settings.ownerTitle || 'Owner – MORJAL Enterprises'}
               </p>
               <p className="text-gray-300 mb-6">
                 {settings.ownerBio || 'Meet the visionary behind MORJAL Enterprises. Committed to delivering premium electrical safety products and exceptional customer service.'}
@@ -51,7 +51,7 @@ export default async function OwnerPage() {
                 </Link>
               </div>
             </div>
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center">
               {settings.ownerImageUrl ? (
                 <div className="relative h-64 w-64 max-w-full overflow-hidden rounded-full border-4 border-gold sm:h-80 sm:w-80">
                   <Image
@@ -68,6 +68,14 @@ export default async function OwnerPage() {
                   </span>
                 </div>
               )}
+              <div className="mt-5 text-center">
+                <p className="text-2xl font-bold text-white sm:text-3xl">
+                  {settings.ownerName || 'Devraj Mina'}
+                </p>
+                <p className="mt-1 text-base font-semibold text-gold sm:text-lg">
+                  {settings.ownerTitle || 'Owner – MORJAL Enterprises'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
