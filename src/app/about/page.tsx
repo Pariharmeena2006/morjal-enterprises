@@ -40,16 +40,20 @@ export default function AboutPage() {
             <div className="relative mx-3 aspect-square overflow-hidden rounded-full border-4 border-white/10 bg-navy shadow-2xl">
               <Image
                 src="/owner/devraj-profile.jpg"
-                alt="Founder of MORJAL Enterprises"
+                alt="Devraj Mina, Owner of MORJAL Enterprises"
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 45vw"
                 className="object-cover object-center"
               />
             </div>
-            <div className="absolute bottom-0 left-4 right-4 rounded-2xl border border-white/15 bg-white p-4 text-navy shadow-xl sm:left-8 sm:right-8 sm:p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A87913]">Built on trust</p>
-              <p className="mt-1 text-sm font-semibold sm:text-base">A people-first approach to workplace safety.</p>
+            <div className="mt-6 text-center sm:mt-8">
+              <p className="text-[28px] font-bold leading-tight text-white sm:text-[32px]">
+                Devraj Mina
+              </p>
+              <p className="mt-1 text-base font-semibold text-gold sm:mt-2 sm:text-lg">
+                Owner – MORJAL Enterprises
+              </p>
             </div>
           </div>
         </div>
