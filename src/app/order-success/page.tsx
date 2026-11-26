@@ -62,7 +62,7 @@ function OrderSuccessContent() {
     '', `Subtotal: ${formatPrice(order.subtotal)}`,
     `Shipping Charges: ${order.shippingCharge === 0 ? 'FREE' : formatPrice(order.shippingCharge)}`,
     `Total Amount: ${formatPrice(order.total)}`,
-    `Payment Method: ${order.paymentMethod === 'easebuzz' ? 'Easebuzz Online Payment' : 'COD'}`,
+    `Payment Method: ${order.paymentMethod === 'phonepe' ? 'PhonePe Online Payment' : 'COD'}`,
     `Payment Status: ${paid ? 'PAID (verified)' : 'UNPAID / COD pending'}`,
     '', 'Delivery Address:',
     `${order.address}, ${order.city}, ${order.state} – ${order.pinCode}${order.landmark ? `, Landmark: ${order.landmark}` : ''}`,
@@ -89,7 +89,7 @@ function OrderSuccessContent() {
             <p><strong>Subtotal:</strong> {formatPrice(order.subtotal)}</p>
             <p><strong>Shipping:</strong> {order.shippingCharge === 0 ? 'FREE' : formatPrice(order.shippingCharge)}</p>
             <p className="text-base font-bold text-navy"><strong>Total:</strong> {formatPrice(order.total)}</p>
-            <p><strong>Payment:</strong> {order.paymentMethod === 'easebuzz' ? 'Easebuzz Online' : 'Cash on Delivery'} — {paid ? 'PAID ✓' : 'Pending (pay on delivery)'}</p>
+            <p><strong>Payment:</strong> {order.paymentMethod === 'phonepe' ? 'PhonePe Online' : 'Cash on Delivery'} — {paid ? 'PAID ✓' : 'Pending (pay on delivery)'}</p>
             <p className="mt-2 text-xs text-gray-500">{order.address}, {order.city}, {order.state} – {order.pinCode}</p>
           </div>
         )}

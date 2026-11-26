@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [enquiry, setEnquiry] = useState<EnquiryResult | null>(null)
   const [idempotencyKey, setIdempotencyKey] = useState('')
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1000)
+  const [onlinePaymentsEnabled, setOnlinePaymentsEnabled] = useState(false)
   const [whatsappFallbackUrl, setWhatsappFallbackUrl] = useState('')
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function CheckoutPage() {
     setCartLoaded(true)
     getStorefrontSettings().then((settings) => {
       setFreeShippingThreshold(Number(settings.freeShippingThreshold) || 1000)
+      setOnlinePaymentsEnabled(Boolean((settings as { onlinePaymentsEnabled?: boolean }).onlinePaymentsEnabled))
     })
   }, [])
 
@@ -94,8 +96,8 @@ export default function CheckoutPage() {
       if (!response.ok) throw new Error(data.error || 'Unable to place your order')
       localStorage.removeItem('cart')
       window.dispatchEvent(new Event('cart-updated'))
-      if (paymentMethod === 'easebuzz') {
-        const payRes = await fetch('/api/orders/easebuzz/initiate', {
+      if (paymentMethod === 'phonepe') {
+        const payRes = await fetch('/api/payments/phonepe/initiate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ orderNumber: data.orderNumber, trackingToken: data.trackingToken }),
@@ -266,14 +268,14 @@ export default function CheckoutPage() {
                       <p className="text-sm text-text">Pay when your order is delivered</p>
                     </div>
                   </label>
-                  <label className={`flex cursor-pointer items-start rounded-xl border-2 p-3 transition-all sm:items-center sm:p-4 ${paymentMethod === 'easebuzz' ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-navy'}`}>
-                    <input type="radio" name="paymentMethod" value="easebuzz" checked={paymentMethod === 'easebuzz'} onChange={(e) => setPaymentMethod(e.target.value)} disabled className="mr-4" />
+                  <label className={`flex cursor-pointer items-start rounded-xl border-2 p-3 transition-all sm:items-center sm:p-4 ${paymentMethod === 'phonepe' ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-navy'}`}>
+                    <input type="radio" name="paymentMethod" value="phonepe" checked={paymentMethod === 'phonepe'} onChange={(e) => setPaymentMethod(e.target.value)} disabled={!onlinePaymentsEnabled} className="mr-4" />
                     <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy sm:mr-4 sm:h-12 sm:w-12">
-                      <span className="text-xs font-bold text-gold">PAY</span>
+                      <span className="text-xs font-bold text-gold">UPI</span>
                     </div>
                     <div>
-                      <p className="font-semibold text-navy">Online Payment <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">Coming soon</span></p>
-                      <p className="text-sm text-text">Temporarily unavailable — please use Cash on Delivery</p>
+                      <p className="font-semibold text-navy">PhonePe Online Payment {!onlinePaymentsEnabled && <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">Unavailable</span>}</p>
+                      <p className="text-sm text-text">{onlinePaymentsEnabled ? 'UPI, cards & netbanking via PhonePe — secured checkout' : 'Online payments are not configured yet — please use Cash on Delivery'}</p>
                     </div>
                   </label>
                 </div>

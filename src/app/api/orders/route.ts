@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!/^[0-9]{10}$/.test(body.phone) || !/^[0-9]{6}$/.test(body.pinCode)) {
       return NextResponse.json({ error: 'Enter a valid 10-digit phone number and 6-digit PIN code.' }, { status: 400 })
     }
-    if (!['cod', 'easebuzz'].includes(body.paymentMethod)) {
+    if (!['cod', 'phonepe'].includes(body.paymentMethod)) {
       return NextResponse.json({ error: 'Please select Cash on Delivery or online payment.' }, { status: 400 })
     }
     if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {

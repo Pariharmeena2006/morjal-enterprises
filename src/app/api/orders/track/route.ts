@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         orderNumber,
         OR: [
           ...(tokenHash ? [{ trackingTokenHash: tokenHash }] : []),
-          ...(txnid ? [{ razorpayOrderId: txnid }] : []),
+          ...(txnid ? [{ razorpayOrderId: txnid }, { phonepeMerchantOrderId: txnid }] : []),
         ],
       },
       select: {

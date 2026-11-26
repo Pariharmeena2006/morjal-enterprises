@@ -24,3 +24,6 @@ ALTER TABLE "CustomerLoginOTP" ADD CONSTRAINT "CustomerLoginOTP_customerId_fkey"
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS "CustomerLoginOTP_email_expiresAt_idx" ON "CustomerLoginOTP"("email", "expiresAt");
 CREATE INDEX IF NOT EXISTS "CustomerLoginOTP_customerId_idx" ON "CustomerLoginOTP"("customerId");
+
+
+

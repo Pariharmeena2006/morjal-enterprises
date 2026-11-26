@@ -18,8 +18,12 @@ export async function GET() {
   try {
     const settings = await prisma.websiteSettings.findFirst()
     if (!settings) return NextResponse.json({})
-    const { shiprocketApiKey, ...safeSettings } = settings
-    return NextResponse.json({ ...safeSettings, shiprocketApiKeyConfigured: Boolean(shiprocketApiKey) })
+    const { shiprocketApiKey, phonepeClientSecret, ...safeSettings } = settings
+    return NextResponse.json({
+      ...safeSettings,
+      shiprocketApiKeyConfigured: Boolean(shiprocketApiKey),
+      phonepeClientSecretConfigured: Boolean(phonepeClientSecret),
+    })
   } catch (error) {
     console.error('Error loading settings:', error)
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 })
@@ -37,6 +41,14 @@ export async function PUT(request: NextRequest) {
       if (body[field] !== undefined) data[field] = body[field] ? String(body[field]).trim() : null
     }
     if (typeof body.shiprocketEnabled === 'boolean') data.shiprocketEnabled = body.shiprocketEnabled
+    if (typeof body.phonepeEnabled === 'boolean') data.phonepeEnabled = body.phonepeEnabled
+    if (body.phonepeEnv === 'sandbox' || body.phonepeEnv === 'production') data.phonepeEnv = body.phonepeEnv
+    for (const field of ['phonepeMerchantId', 'phonepeClientId'] as const) {
+      if (body[field] !== undefined) data[field] = body[field] ? String(body[field]).trim() : null
+    }
+    if (typeof body.phonepeClientSecret === 'string' && body.phonepeClientSecret.trim()) {
+      data.phonepeClientSecret = body.phonepeClientSecret.trim()
+    }
     if (typeof body.homeFeaturedVisible === 'boolean') data.homeFeaturedVisible = body.homeFeaturedVisible
     if (typeof body.homeVideosVisible === 'boolean') data.homeVideosVisible = body.homeVideosVisible
     if (typeof body.shiprocketApiKey === 'string' && body.shiprocketApiKey.trim()) {
@@ -55,8 +67,12 @@ export async function PUT(request: NextRequest) {
     const settings = existing
       ? await prisma.websiteSettings.update({ where: { id: existing.id }, data })
       : await prisma.websiteSettings.create({ data })
-    const { shiprocketApiKey, ...safeSettings } = settings
-    return NextResponse.json({ ...safeSettings, shiprocketApiKeyConfigured: Boolean(shiprocketApiKey) })
+    const { shiprocketApiKey, phonepeClientSecret, ...safeSettings } = settings
+    return NextResponse.json({
+      ...safeSettings,
+      shiprocketApiKeyConfigured: Boolean(shiprocketApiKey),
+      phonepeClientSecretConfigured: Boolean(phonepeClientSecret),
+    })
   } catch (error) {
     console.error('Error saving settings:', error)
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })

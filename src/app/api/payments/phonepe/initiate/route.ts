@@ -1,13 +1,13 @@
 import { createHash, randomBytes } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { easebuzzConfig, initiateEasebuzzPayment } from '@/lib/easebuzz'
+import { getPhonePeConfig, initiatePhonePePayment } from '@/lib/phonepe'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    if (!easebuzzConfig()) {
+    if (!(await getPhonePeConfig())) {
       return NextResponse.json({ error: 'Online payments are not configured.' }, { status: 503 })
     }
     const body = await request.json()
@@ -19,31 +19,32 @@ export async function POST(request: NextRequest) {
     const order = await prisma.order.findFirst({
       where: {
         orderNumber,
-        paymentMethod: 'easebuzz',
+        paymentMethod: 'phonepe',
         paymentStatus: 'pending',
         trackingTokenHash: createHash('sha256').update(token).digest('hex'),
       },
-      select: { id: true, orderNumber: true, total: true, customerName: true, customerEmail: true, customerPhone: true, razorpayOrderId: true },
+      select: { id: true, orderNumber: true, total: true, customerName: true, customerPhone: true, phonepeMerchantOrderId: true },
     })
     if (!order) {
       return NextResponse.json({ error: 'Order not found or already processed.' }, { status: 404 })
     }
-    if (order.razorpayOrderId) {
-      return NextResponse.json({ error: 'Payment already initiated for this order.' }, { status: 409 })
+    // If a previous attempt exists, verify it is not already paid before retrying
+    if (order.phonepeMerchantOrderId) {
+      const { checkPhonePeStatus } = await import('@/lib/phonepe')
+      const status = await checkPhonePeStatus(order.phonepeMerchantOrderId)
+      if (status?.state === 'COMPLETED' && status.code === 'SUCCESS') {
+        return NextResponse.json({ error: 'This order is already paid.' }, { status: 409 })
+      }
     }
 
     const origin = process.env.NEXTAUTH_URL || new URL(request.url).origin
-    const txnid = `MJ${order.orderNumber.replace(/\D/g, '')}${randomBytes(3).toString('hex').toUpperCase()}`.slice(0, 40)
-    const result = await initiateEasebuzzPayment({
-      txnid,
+    const merchantOrderId = `MJ${order.orderNumber.replace(/\D/g, '')}${randomBytes(3).toString('hex').toUpperCase()}`.slice(0, 40)
+    const result = await initiatePhonePePayment({
+      merchantOrderId,
       amount: order.total,
-      productinfo: `MORJAL Order ${order.orderNumber}`,
-      firstname: order.customerName,
-      email: order.customerEmail || 'guest@morjalenterprises.in',
-      phone: order.customerPhone,
-      surl: `${origin}/api/orders/easebuzz/callback`,
-      furl: `${origin}/checkout?payment=failed&order=${encodeURIComponent(order.orderNumber)}`,
-      udf: { udf1: order.orderNumber },
+      redirectUrl: `${origin}/api/payments/phonepe/callback?morder=${encodeURIComponent(merchantOrderId)}`,
+      mobileNumber: order.customerPhone,
+      orderSummary: `MORJAL Order ${order.orderNumber}`,
     })
     if (!result) {
       return NextResponse.json({ error: 'Unable to start online payment. Please try again.' }, { status: 502 })
@@ -51,11 +52,11 @@ export async function POST(request: NextRequest) {
 
     await prisma.order.update({
       where: { id: order.id },
-      data: { razorpayOrderId: txnid },
+      data: { phonepeMerchantOrderId: merchantOrderId },
     })
-    return NextResponse.json({ paymentUrl: result.paymentUrl, txnid }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ paymentUrl: result.paymentUrl, merchantOrderId }, { headers: { 'Cache-Control': 'no-store' } })
   } catch {
-    console.error('Easebuzz initiation failed')
+    console.error('PhonePe initiation failed')
     return NextResponse.json({ error: 'Unable to start online payment.' }, { status: 500 })
   }
 }

@@ -35,6 +35,8 @@ interface OrderDetails {
   shipmentId?: string | null
   shiprocketOrderId?: string | null
   estimatedDelivery?: string | null
+  phonepeMerchantOrderId?: string | null
+  phonepeTransactionId?: string | null
   createdAt: string
   items: Array<{ id: string; productName: string; quantity: number; unitPrice: number; totalPrice: number; product: { images: Array<{ url: string; alt: string | null }> } }>
   statusHistory: Array<{ id: string; status: string; note: string | null; createdAt: string }>
@@ -61,6 +63,7 @@ export default function AdminOrderDetailPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [creatingShipment, setCreatingShipment] = useState(false)
+  const [refunding, setRefunding] = useState(false)
   const [refreshingTracking, setRefreshingTracking] = useState(false)
 
   useEffect(() => {
@@ -126,6 +129,24 @@ export default function AdminOrderDetailPage() {
       setError(requestError instanceof Error ? requestError.message : 'Unable to create the Shiprocket order')
     } finally {
       setCreatingShipment(false)
+    }
+  }
+
+  const refundOrder = async () => {
+    if (!window.confirm('Initiate a PhonePe refund for this paid order?')) return
+    setRefunding(true)
+    setError('')
+    setNotice('')
+    try {
+      const response = await fetch(`/api/admin/orders/${params.id}/refund`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Unable to process refund')
+      setOrder((current) => current ? { ...current, paymentStatus: 'refunded' } : current)
+      setNotice(`Refund initiated via PhonePe (ID ${data.refundId}).`)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to process refund')
+    } finally {
+      setRefunding(false)
     }
   }
 
@@ -210,6 +231,11 @@ export default function AdminOrderDetailPage() {
             <CardHeader><CardTitle className="flex items-center gap-2"><PackageCheck className="h-5 w-5 text-navy" />Fulfilment</CardTitle></CardHeader>
             <CardContent>
               {order.shiprocketOrderId && <p className="mb-4 rounded-lg bg-blue-50 p-3 text-xs text-blue-900">Shiprocket order: {order.shiprocketOrderId}{order.shipmentId ? ` · Shipment ${order.shipmentId}` : ''}{order.shiprocketOrderId === 'pending' ? ' · Needs reconciliation' : ''}</p>}
+              {order.paymentMethod === 'phonepe' && order.phonepeMerchantOrderId && (
+                <p className="mb-4 rounded-lg bg-indigo-50 p-3 text-xs text-indigo-900">
+                  PhonePe merchant order: {order.phonepeMerchantOrderId}{order.phonepeTransactionId ? ` · Txn ${order.phonepeTransactionId}` : ''} · Payment: {order.paymentStatus}
+                </p>
+              )}
               <div className="mb-4 flex flex-wrap gap-2">
                 {order.customerPhone && (
                   <a
@@ -222,6 +248,11 @@ export default function AdminOrderDetailPage() {
                   </a>
                 )}
                 <Button type="button" variant="outline" className="flex-1" onClick={createShipment} disabled={creatingShipment || Boolean(order.shiprocketOrderId) || !['enquiry', 'confirmed', 'processing', 'packed'].includes(order.orderStatus)}><Truck className="mr-2 h-4 w-4" />{creatingShipment ? 'Contacting Shiprocket…' : order.shiprocketOrderId ? 'Shiprocket request recorded' : 'Create Shiprocket shipment'}</Button>
+                {order.paymentMethod === 'phonepe' && order.paymentStatus === 'paid' && (
+                  <Button type="button" variant="outline" className="w-full border-red-300 text-red-700 hover:bg-red-50" onClick={refundOrder} disabled={refunding}>
+                    {refunding ? 'Processing refund…' : 'Refund via PhonePe'}
+                  </Button>
+                )}
               </div>
               {order.shipmentId && order.shipmentId !== 'pending' && <Button type="button" variant="outline" className="mb-4 w-full" onClick={refreshTracking} disabled={refreshingTracking}>{refreshingTracking ? 'Refreshing…' : 'Refresh tracking from Shiprocket'}</Button>}
               <form onSubmit={saveOrder} className="space-y-4">

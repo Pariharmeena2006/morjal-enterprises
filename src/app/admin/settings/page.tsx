@@ -33,6 +33,12 @@ type SettingsForm = {
   shiprocketApiKey: string
   shiprocketChannelId: string
   shiprocketApiKeyConfigured: boolean
+  phonepeEnabled: boolean
+  phonepeEnv: string
+  phonepeMerchantId: string
+  phonepeClientId: string
+  phonepeClientSecret: string
+  phonepeClientSecretConfigured: boolean
   homeHeroFirstLine: string
   homeHeroSecondLine: string
   homeHeroDescription: string
@@ -48,6 +54,7 @@ const emptyForm: SettingsForm = {
   ownerName: '', ownerTitle: '', ownerBio: '', ownerStory: '', ownerImageUrl: '', ownerAchievements: '',
   socialFacebook: '', socialInstagram: '', socialTwitter: '', socialLinkedIn: '',
   shiprocketEnabled: false, shiprocketEmail: '', shiprocketApiKey: '', shiprocketChannelId: '', shiprocketApiKeyConfigured: false,
+  phonepeEnabled: false, phonepeEnv: 'sandbox', phonepeMerchantId: '', phonepeClientId: '', phonepeClientSecret: '', phonepeClientSecretConfigured: false,
   homeHeroFirstLine: '', homeHeroSecondLine: '', homeHeroDescription: '', homeFeaturedTitle: '', homeFeaturedDescription: '', homeFeaturedVisible: true, homeVideosVisible: true,
 }
 
@@ -79,6 +86,12 @@ export default function AdminSettingsPage() {
           shiprocketApiKey: '',
           shiprocketChannelId: data.shiprocketChannelId || '',
           shiprocketApiKeyConfigured: data.shiprocketApiKeyConfigured ?? false,
+          phonepeEnabled: data.phonepeEnabled ?? false,
+          phonepeEnv: data.phonepeEnv || 'sandbox',
+          phonepeMerchantId: data.phonepeMerchantId || '',
+          phonepeClientId: data.phonepeClientId || '',
+          phonepeClientSecret: '',
+          phonepeClientSecretConfigured: data.phonepeClientSecretConfigured ?? false,
           homeHeroFirstLine: data.homeHeroFirstLine || '',
           homeHeroSecondLine: data.homeHeroSecondLine || '',
           homeHeroDescription: data.homeHeroDescription || '',
@@ -183,6 +196,29 @@ export default function AdminSettingsPage() {
                 <div><Label htmlFor="shiprocketEmail">Shiprocket Email</Label><Input id="shiprocketEmail" type="email" value={form.shiprocketEmail} onChange={(e) => update('shiprocketEmail', e.target.value)} placeholder="your@email.com" /></div>
                 <div><Label htmlFor="shiprocketApiKey">Shiprocket API password</Label><Input id="shiprocketApiKey" type="password" autoComplete="new-password" value={form.shiprocketApiKey} onChange={(e) => update('shiprocketApiKey', e.target.value)} placeholder={form.shiprocketApiKeyConfigured ? 'Saved securely — leave blank to keep' : 'Enter Shiprocket password'} /><p className="mt-1 text-xs text-gray-500">{form.shiprocketApiKeyConfigured ? 'A credential is saved; it is never sent back to this page.' : 'Required to enable Shiprocket.'}</p></div>
                 <div className="md:col-span-2"><Label htmlFor="shiprocketChannelId">Channel ID (Optional)</Label><Input id="shiprocketChannelId" value={form.shiprocketChannelId} onChange={(e) => update('shiprocketChannelId', e.target.value)} placeholder="Your Shiprocket channel ID" /></div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>PhonePe Payment Gateway</CardTitle></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2 flex items-center gap-3">
+                  <input id="phonepeEnabled" type="checkbox" checked={form.phonepeEnabled} onChange={(e) => update('phonepeEnabled', e.target.checked)} className="h-4 w-4 accent-[#073B82]" />
+                  <Label htmlFor="phonepeEnabled">Enable PhonePe online payments</Label>
+                </div>
+                <div>
+                  <Label htmlFor="phonepeEnv">Environment</Label>
+                  <select id="phonepeEnv" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2" value={form.phonepeEnv} onChange={(e) => update('phonepeEnv', e.target.value)}>
+                    <option value="sandbox">Sandbox (test)</option>
+                    <option value="production">Production</option>
+                  </select>
+                </div>
+                <div><Label htmlFor="phonepeMerchantId">Merchant ID</Label><Input id="phonepeMerchantId" value={form.phonepeMerchantId} onChange={(e) => update('phonepeMerchantId', e.target.value)} placeholder="e.g. MXXXXXXXXXX" /></div>
+                <div><Label htmlFor="phonepeClientId">Client ID</Label><Input id="phonepeClientId" value={form.phonepeClientId} onChange={(e) => update('phonepeClientId', e.target.value)} /></div>
+                <div><Label htmlFor="phonepeClientSecret">Client Secret</Label><Input id="phonepeClientSecret" type="password" autoComplete="new-password" value={form.phonepeClientSecret} onChange={(e) => update('phonepeClientSecret', e.target.value)} placeholder={form.phonepeClientSecretConfigured ? 'Saved securely — leave blank to keep' : 'Enter Client Secret'} /><p className="mt-1 text-xs text-gray-500">{form.phonepeClientSecretConfigured ? 'A Client Secret is saved; it is never sent back to this page.' : 'V2 OAuth credentials from PhonePe Developer Settings.'}</p></div>
+                <div className="md:col-span-2 rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
+                  Status: {form.phonepeEnabled ? 'Enabled' : 'Disabled'} · Mode: {form.phonepeEnv === 'production' ? 'Production' : 'Sandbox'}
+                  {process.env.NODE_ENV === 'production' ? '' : ' · Env vars PHONEPE_* override these settings when set.'}
+                </div>
               </CardContent>
             </Card>
             <div className="flex justify-end"><Button type="submit" disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save settings'}</Button></div>
