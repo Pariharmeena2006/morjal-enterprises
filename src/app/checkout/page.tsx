@@ -1,48 +1,35 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { formatPrice } from '@/lib/utils'
-import { Truck, ArrowLeft, ShoppingBag } from 'lucide-react'
+import { Truck, ArrowLeft, ShoppingBag, CreditCard, Banknote, ChevronDown, ShieldCheck, Package, MapPin, Lock, Loader2, Minus, Plus, X, Check } from 'lucide-react'
 import Link from 'next/link'
-import WhatsAppIcon from '@/components/whatsapp-icon'
+import Image from 'next/image'
 import { readCart, writeCart, type CartItem } from '@/lib/cart'
 import { getStorefrontSettings } from '@/lib/storefront'
 
-interface EnquiryResult {
-  orderNumber: string
-  whatsappUrl: string | null
-  whatsappConfigured: boolean
-  trackingToken: string
-}
+const inputCls = 'mt-1.5 rounded-xl border-gray-200 bg-[#F5F7FA] py-3 transition-colors focus:border-[#093875] focus:bg-white focus:ring-2 focus:ring-[#D4AF37]/40'
 
 export default function CheckoutPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    address: '',
-    city: '',
-    state: '',
-    pinCode: '',
-    landmark: '',
-    orderNotes: '',
+    fullName: '', phone: '', email: '', address: '', city: '', state: '', pinCode: '', landmark: '', orderNotes: '',
   })
   const [paymentMethod, setPaymentMethod] = useState('cod')
   const [loading, setLoading] = useState(false)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cartLoaded, setCartLoaded] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
-  const [enquiry, setEnquiry] = useState<EnquiryResult | null>(null)
   const [idempotencyKey, setIdempotencyKey] = useState('')
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1000)
   const [onlinePaymentsEnabled, setOnlinePaymentsEnabled] = useState(false)
-  const [whatsappFallbackUrl, setWhatsappFallbackUrl] = useState('')
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     setCartItems(readCart())
@@ -79,9 +66,18 @@ export default function CheckoutPage() {
     })
   }
 
+  const scrollToFirstInvalid = () => {
+    requestAnimationFrame(() => {
+      const invalid = formRef.current?.querySelector<HTMLElement>(':invalid')
+      invalid?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      invalid?.focus({ preventScroll: true })
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loading) return
+    if (!formRef.current?.checkValidity()) { scrollToFirstInvalid(); return }
     setLoading(true)
     setCheckoutError('')
     try {
@@ -109,52 +105,68 @@ export default function CheckoutPage() {
       }
       window.location.href = `/order-success?order=${encodeURIComponent(data.orderNumber)}&token=${encodeURIComponent(data.trackingToken)}`
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : 'Unable to save your order enquiry. Please try again.')
+      setCheckoutError(error instanceof Error ? error.message : 'Unable to place your order. Please try again.')
       setLoading(false)
     }
   }
 
+  const itemList = (
+    <div className="max-h-72 space-y-4 overflow-y-auto pr-1">
+      {cartItems.map((item) => (
+        <div key={item.productId} className="flex items-center gap-3">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-[#F5F7FA]">
+            {item.image ? (
+              <Image src={item.image} alt={item.name} fill sizes="56px" className="object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-gray-300"><Package className="h-5 w-5" /></div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-[#093875]">{item.name}</p>
+            <p className="text-xs text-gray-500">{formatPrice(item.price)} each</p>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <button type="button" onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-[#093875] transition hover:border-[#D4AF37] hover:bg-[#D4AF37]/10" aria-label={`Decrease ${item.name} quantity`}><Minus className="h-3.5 w-3.5" /></button>
+              <span className="w-7 text-center text-sm font-bold text-[#093875]">{item.quantity}</span>
+              <button type="button" onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-[#093875] transition hover:border-[#D4AF37] hover:bg-[#D4AF37]/10" aria-label={`Increase ${item.name} quantity`}><Plus className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => removeItem(item.productId)} className="ml-1 flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600" aria-label={`Remove ${item.name}`}><X className="h-4 w-4" /></button>
+            </div>
+          </div>
+          <span className="shrink-0 text-sm font-bold text-[#093875]">{formatPrice(item.price * item.quantity)}</span>
+        </div>
+      ))}
+    </div>
+  )
+
+  const totalsBlock = (
+    <div className="space-y-2.5 border-t border-gray-100 pt-4 text-sm">
+      <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-semibold text-[#093875]">{formatPrice(subtotal)}</span></div>
+      <div className="flex justify-between"><span className="text-gray-500">Shipping</span><span className="font-semibold text-[#093875]">{shippingCharge === 0 ? <span className="text-green-600">FREE</span> : formatPrice(shippingCharge)}</span></div>
+      {subtotal >= freeShippingThreshold && subtotal > 0 && <p className="text-xs font-semibold text-green-600">✓ Free shipping applied</p>}
+      <div className="flex items-baseline justify-between border-t border-gray-100 pt-3">
+        <span className="text-base font-bold text-[#093875]">Total Payable</span>
+        <span className="text-2xl font-extrabold text-[#093875]">{formatPrice(total)}</span>
+      </div>
+    </div>
+  )
+
+  const submitButton = (
+    <Button
+      type="submit"
+      size="lg"
+      className="h-13 w-full rounded-xl bg-[#093875] py-4 text-base font-bold text-white shadow-lg shadow-[#093875]/20 transition hover:bg-[#0b4a9e] disabled:opacity-60"
+      disabled={loading || (paymentMethod === 'phonepe' && !onlinePaymentsEnabled)}
+    >
+      {loading ? <span className="inline-flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" /> Processing…</span>
+        : paymentMethod === 'phonepe' ? 'Proceed to Payment' : `Confirm Order — ${formatPrice(total)}`}
+    </Button>
+  )
+
   if (!cartLoaded) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F7FA]">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-navy"></div>
-          <p className="mt-4 text-navy">Loading checkout…</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (enquiry) {
-    return (
-      <div className="min-h-screen bg-white px-4 py-16">
-        <div className="mx-auto max-w-xl rounded-2xl border border-green-100 bg-green-50 p-8 text-center shadow-lg">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#25D366] text-white">
-            <WhatsAppIcon className="h-8 w-8" />
-          </div>
-          <h1 className="mb-3 text-3xl font-bold text-navy">Order enquiry saved</h1>
-          <p className="mb-2 text-text">Your enquiry number is <strong>{enquiry.orderNumber}</strong>.</p>
-          <p className="mb-6 text-sm text-text">
-            {enquiry.whatsappConfigured
-              ? 'We opened WhatsApp with your order details. Press Send inside WhatsApp to confirm your enquiry — we will reply with availability, final price and delivery details.'
-              : 'Your enquiry is saved. Our team will contact you to confirm your order. WhatsApp ordering is not configured yet.'}
-          </p>
-          {enquiry.whatsappUrl && (
-            <div className="mb-4 space-y-3">
-              <a href={enquiry.whatsappUrl} target="_blank" rel="noreferrer">
-                <Button className="w-full bg-[#25D366] py-4 text-base font-semibold text-white hover:bg-[#1eb856]">
-                  <WhatsAppIcon className="mr-2 h-5 w-5" /> Open WhatsApp again
-                </Button>
-              </a>
-              <p className="text-xs text-gray-500">If WhatsApp did not open, use the button above.</p>
-            </div>
-          )}
-          <Link href={`/track-order?order=${encodeURIComponent(enquiry.orderNumber)}#token=${encodeURIComponent(enquiry.trackingToken)}`}>
-            <Button variant="outline" className="mb-4 border-navy text-navy">Track enquiry status</Button>
-          </Link>
-          <div>
-            <Link href="/products"><Button className="bg-navy text-white hover:bg-navy-deep">Continue shopping</Button></Link>
-          </div>
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#093875]" />
+          <p className="mt-4 font-medium text-[#093875]">Loading checkout…</p>
         </div>
       </div>
     )
@@ -162,204 +174,175 @@ export default function CheckoutPage() {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="container mx-auto px-4 py-16">
-          <div className="mx-auto max-w-md text-center">
-            <ShoppingBag className="mx-auto mb-6 h-32 w-32 text-gray-300" />
-            <h1 className="mb-3 text-3xl font-bold text-navy">Your cart is empty</h1>
-            <p className="mb-8 text-text">Add products to place a WhatsApp order enquiry</p>
-            <Link href="/products">
-              <Button size="lg" className="rounded-xl bg-navy py-4 text-white hover:bg-navy-deep">
-                Browse Products
-              </Button>
-            </Link>
-          </div>
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F7FA] px-4">
+        <div className="w-full max-w-md rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-xl">
+          <ShoppingBag className="mx-auto mb-5 h-16 w-16 text-gray-200" />
+          <h1 className="mb-2 text-2xl font-bold text-[#093875]">Your cart is empty</h1>
+          <p className="mb-6 text-gray-500">Add products to place your order</p>
+          <Link href="/products"><Button size="lg" className="w-full rounded-xl bg-[#093875] py-4 font-semibold text-white hover:bg-[#0b4a9e]">Browse Products</Button></Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="bg-background-light py-8">
-        <div className="container mx-auto px-4">
-          <Link href="/cart">
-            <Button variant="ghost" className="mb-4 text-navy hover:text-gold">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Cart
-            </Button>
+    <div className="min-h-screen bg-[#F5F7FA] pb-28 lg:pb-12">
+      {/* Header */}
+      <div className="border-b border-gray-100 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-5">
+          <Link href="/cart" className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-[#093875]">
+            <ArrowLeft className="h-4 w-4" /> Back to Cart
           </Link>
-          <h1 className="text-2xl font-bold text-navy sm:text-3xl lg:text-4xl">Guest Checkout</h1>
-          <p className="mt-2 text-text">No login needed — send your order enquiry on WhatsApp</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#093875] sm:text-3xl">Secure Checkout</h1>
+          <p className="mt-1 text-sm text-gray-500">No login needed — place your order in under a minute</p>
+          {/* Progress */}
+          <div className="mt-5 flex items-center gap-2 text-xs font-semibold">
+            <span className="flex items-center gap-1.5 rounded-full bg-[#093875] px-3 py-1.5 text-white"><MapPin className="h-3.5 w-3.5" /> Address</span>
+            <span className="h-px flex-1 bg-gray-200" />
+            <span className="flex items-center gap-1.5 rounded-full bg-[#093875] px-3 py-1.5 text-white"><CreditCard className="h-3.5 w-3.5" /> Payment</span>
+            <span className="h-px flex-1 bg-gray-200" />
+            <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-gray-500"><Check className="h-3.5 w-3.5" /> Confirmation</span>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            <div className="space-y-6 lg:col-span-2">
-              {checkoutError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{checkoutError}</div>}
+      <form ref={formRef} onSubmit={handleSubmit} className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          {/* Left column */}
+          <div className="space-y-5 lg:col-span-3">
+            {checkoutError && (
+              <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{checkoutError}</div>
+            )}
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:p-6">
-                <h2 className="mb-5 text-lg font-bold text-navy sm:mb-6 sm:text-xl">Contact Information</h2>
-                <div className="space-y-5">
+            {/* Contact */}
+            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-[#093875] sm:text-lg"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#D4AF37]/15 text-sm text-[#8a6d1a]">1</span> Contact Information</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Label htmlFor="fullName" className="text-sm font-semibold text-gray-700">Full Name *</Label>
+                  <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} required maxLength={150} placeholder="Enter your full name" autoComplete="name" className={inputCls} />
+                </div>
+                <div>
+                  <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">Mobile Number *</Label>
+                  <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} required placeholder="10-digit mobile number" pattern="[6-9][0-9]{9}" inputMode="numeric" autoComplete="tel-national" maxLength={10} className={inputCls} />
+                </div>
+                <div>
+                  <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email <span className="font-normal text-gray-400">(optional)</span></Label>
+                  <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="your@email.com" autoComplete="email" className={inputCls} />
+                </div>
+              </div>
+            </section>
+
+            {/* Address */}
+            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-[#093875] sm:text-lg"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#D4AF37]/15 text-sm text-[#8a6d1a]">2</span> Delivery Address</h2>
+              <div className="grid gap-4">
+                <div>
+                  <Label htmlFor="address" className="text-sm font-semibold text-gray-700">House / Building / Street Address *</Label>
+                  <Textarea id="address" name="address" value={formData.address} onChange={handleInputChange} required maxLength={500} placeholder="Enter your complete address" rows={3} autoComplete="street-address" className={`${inputCls} resize-none`} />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label htmlFor="fullName" className="font-medium text-navy">Full Name *</Label>
-                    <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} required maxLength={150} placeholder="Enter your full name" autoComplete="name" inputMode="text" className="mt-2 rounded-xl border-gray-300 py-3 focus:border-gold focus:ring-gold" />
+                    <Label htmlFor="city" className="text-sm font-semibold text-gray-700">City *</Label>
+                    <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required maxLength={100} placeholder="City name" autoComplete="address-level2" className={inputCls} />
                   </div>
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <div>
-                      <Label htmlFor="phone" className="font-medium text-navy">Mobile Number *</Label>
-                      <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} required placeholder="10-digit mobile number" pattern="[6-9][0-9]{9}" inputMode="numeric" autoComplete="tel-national" maxLength={10} className="mt-2 rounded-xl border-gray-300 py-3 focus:border-gold focus:ring-gold" />
-                    </div>
-                    <div>
-                      <Label htmlFor="email" className="font-medium text-navy">Email (Optional)</Label>
-                      <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="your@email.com" autoComplete="email" className="mt-2 rounded-xl border-gray-300 py-3 focus:border-gold focus:ring-gold" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:p-6">
-                <h2 className="mb-5 text-lg font-bold text-navy sm:mb-6 sm:text-xl">Delivery Address</h2>
-                <div className="space-y-5">
                   <div>
-                    <Label htmlFor="address" className="font-medium text-navy">House/Building/Street Address *</Label>
-                    <Textarea id="address" name="address" value={formData.address} onChange={handleInputChange} required maxLength={500} placeholder="Enter your complete address" rows={3} autoComplete="street-address" className="mt-2 rounded-xl border-gray-300 focus:border-gold focus:ring-gold" />
+                    <Label htmlFor="state" className="text-sm font-semibold text-gray-700">State *</Label>
+                    <Input id="state" name="state" value={formData.state} onChange={handleInputChange} required maxLength={100} placeholder="State name" autoComplete="address-level1" className={inputCls} />
                   </div>
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <div>
-                      <Label htmlFor="city" className="font-medium text-navy">City *</Label>
-                      <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required maxLength={100} placeholder="City name" autoComplete="address-level2" className="mt-2 rounded-xl border-gray-300 py-3 focus:border-gold focus:ring-gold" />
-                    </div>
-                    <div>
-                      <Label htmlFor="state" className="font-medium text-navy">State *</Label>
-                      <Input id="state" name="state" value={formData.state} onChange={handleInputChange} required maxLength={100} placeholder="State name" autoComplete="address-level1" className="mt-2 rounded-xl border-gray-300 py-3 focus:border-gold focus:ring-gold" />
-                    </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="pinCode" className="text-sm font-semibold text-gray-700">PIN Code *</Label>
+                    <Input id="pinCode" name="pinCode" value={formData.pinCode} onChange={(e) => setFormData({ ...formData, pinCode: e.target.value.replace(/\D/g, '').slice(0, 6) })} required placeholder="6-digit PIN code" pattern="[1-9][0-9]{5}" inputMode="numeric" autoComplete="postal-code" maxLength={6} className={inputCls} />
                   </div>
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <div>
-                      <Label htmlFor="pinCode" className="font-medium text-navy">PIN Code *</Label>
-                      <Input id="pinCode" name="pinCode" value={formData.pinCode} onChange={(e) => setFormData({ ...formData, pinCode: e.target.value.replace(/\D/g, '').slice(0, 6) })} required placeholder="6-digit PIN code" pattern="[1-9][0-9]{5}" inputMode="numeric" autoComplete="postal-code" maxLength={6} className="mt-2 rounded-xl border-gray-300 py-3 focus:border-gold focus:ring-gold" />
-                    </div>
-                    <div>
-                      <Label htmlFor="landmark" className="font-medium text-navy">Landmark (Optional)</Label>
-                      <Input id="landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} maxLength={200} placeholder="Nearby landmark" className="mt-2 rounded-xl border-gray-300 py-3 focus:border-gold focus:ring-gold" />
-                    </div>
+                  <div>
+                    <Label htmlFor="landmark" className="text-sm font-semibold text-gray-700">Landmark <span className="font-normal text-gray-400">(optional)</span></Label>
+                    <Input id="landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} maxLength={200} placeholder="Nearby landmark" className={inputCls} />
                   </div>
                 </div>
               </div>
+            </section>
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:p-6">
-                <h2 className="mb-5 text-lg font-bold text-navy sm:mb-6 sm:text-xl">Order Notes (Optional)</h2>
-                <Textarea name="orderNotes" value={formData.orderNotes} onChange={handleInputChange} maxLength={1000} placeholder="Any special instructions for your order" rows={3} className="rounded-xl border-gray-300 focus:border-gold focus:ring-gold" />
+            {/* Notes */}
+            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-[#093875] sm:text-lg"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#D4AF37]/15 text-sm text-[#8a6d1a]">3</span> Order Notes <span className="text-xs font-normal text-gray-400">(optional)</span></h2>
+              <Textarea name="orderNotes" value={formData.orderNotes} onChange={handleInputChange} maxLength={1000} placeholder="Any special instructions for your order" rows={2} className={`${inputCls} resize-none`} />
+            </section>
+
+            {/* Payment */}
+            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-[#093875] sm:text-lg"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#D4AF37]/15 text-sm text-[#8a6d1a]">4</span> Payment Method</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition-all ${paymentMethod === 'cod' ? 'border-[#093875] bg-[#093875]/5 shadow-sm' : 'border-gray-200 hover:border-[#093875]/40'}`}>
+                  <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="sr-only" />
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${paymentMethod === 'cod' ? 'bg-[#093875] text-[#D4AF37]' : 'bg-[#F5F7FA] text-gray-400'}`}><Banknote className="h-5 w-5" /></span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-[#093875]">Cash on Delivery</span>
+                    <span className="block text-xs text-gray-500">Pay when your order arrives</span>
+                  </span>
+                  {paymentMethod === 'cod' && <Check className="absolute right-3 top-3 h-4 w-4 text-[#093875]" />}
+                </label>
+                <label className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition-all ${paymentMethod === 'phonepe' ? 'border-[#093875] bg-[#093875]/5 shadow-sm' : 'border-gray-200 hover:border-[#093875]/40'} ${!onlinePaymentsEnabled ? 'cursor-not-allowed opacity-60' : ''}`}>
+                  <input type="radio" name="paymentMethod" value="phonepe" checked={paymentMethod === 'phonepe'} onChange={(e) => setPaymentMethod(e.target.value)} disabled={!onlinePaymentsEnabled} className="sr-only" />
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${paymentMethod === 'phonepe' ? 'bg-[#093875] text-[#D4AF37]' : 'bg-[#F5F7FA] text-gray-400'}`}><CreditCard className="h-5 w-5" /></span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-[#093875]">PhonePe Online {!onlinePaymentsEnabled && <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">Unavailable</span>}</span>
+                    <span className="block text-xs text-gray-500">{onlinePaymentsEnabled ? 'UPI, cards & netbanking' : 'Not configured — use COD'}</span>
+                  </span>
+                  {paymentMethod === 'phonepe' && <Check className="absolute right-3 top-3 h-4 w-4 text-[#093875]" />}
+                </label>
               </div>
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-gray-400"><Lock className="h-3.5 w-3.5" /> Payments are processed securely. Your order is saved before any payment begins.</p>
+            </section>
+          </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:p-6">
-                <h2 className="mb-6 text-xl font-bold text-navy">Payment Preference</h2>
-                <div className="space-y-3 sm:space-y-4">
-                  <label className={`flex cursor-pointer items-start rounded-xl border-2 p-3 transition-all sm:items-center sm:p-4 ${paymentMethod === 'cod' ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-navy'}`}>
-                    <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="mr-4" />
-                    <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy sm:mr-4 sm:h-12 sm:w-12">
-                      <Truck className="h-5 w-5 text-gold sm:h-6 sm:w-6" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-navy">Cash on Delivery (COD)</p>
-                      <p className="text-sm text-text">Pay when your order is delivered</p>
-                    </div>
-                  </label>
-                  <label className={`flex cursor-pointer items-start rounded-xl border-2 p-3 transition-all sm:items-center sm:p-4 ${paymentMethod === 'phonepe' ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-navy'}`}>
-                    <input type="radio" name="paymentMethod" value="phonepe" checked={paymentMethod === 'phonepe'} onChange={(e) => setPaymentMethod(e.target.value)} disabled={!onlinePaymentsEnabled} className="mr-4" />
-                    <div className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy sm:mr-4 sm:h-12 sm:w-12">
-                      <span className="text-xs font-bold text-gold">UPI</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-navy">PhonePe Online Payment {!onlinePaymentsEnabled && <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">Unavailable</span>}</p>
-                      <p className="text-sm text-text">{onlinePaymentsEnabled ? 'UPI, cards & netbanking via PhonePe — secured checkout' : 'Online payments are not configured yet — please use Cash on Delivery'}</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
+          {/* Right column — order summary */}
+          <div className="lg:col-span-2">
+            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:sticky lg:top-24">
+              <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-[#093875] sm:text-lg"><Package className="h-5 w-5 text-[#D4AF37]" /> Order Summary</h2>
 
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg sm:p-6">
-                <h2 className="mb-5 text-xl font-bold text-navy sm:mb-6 sm:text-2xl">Order Summary</h2>
+              {/* Mobile collapsible toggle */}
+              <button type="button" onClick={() => setSummaryOpen(!summaryOpen)} className="mb-3 flex w-full items-center justify-between rounded-xl bg-[#F5F7FA] px-4 py-2.5 text-sm font-semibold text-[#093875] lg:hidden" aria-expanded={summaryOpen}>
+                {cartItems.length} item{cartItems.length > 1 ? 's' : ''} — {formatPrice(total)}
+                <ChevronDown className={`h-4 w-4 transition-transform ${summaryOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                <div className="mb-6 max-h-80 space-y-4 overflow-y-auto">
-                  {cartItems.map((item) => (
-                    <div key={item.productId} className="flex items-start justify-between gap-3 text-sm">
-                      <div className="min-w-0 flex-1">
-                        <p className="break-words font-medium text-navy">{item.name}</p>
-                        <p className="text-xs text-gray-500">{formatPrice(item.price)} each</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <button type="button" onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="h-7 w-7 rounded-md border border-gray-300 text-navy hover:bg-gray-50" aria-label={`Decrease ${item.name} quantity`}>−</button>
-                          <span className="w-8 text-center font-semibold text-navy">{item.quantity}</span>
-                          <button type="button" onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="h-7 w-7 rounded-md border border-gray-300 text-navy hover:bg-gray-50" aria-label={`Increase ${item.name} quantity`}>+</button>
-                          <button type="button" onClick={() => removeItem(item.productId)} className="ml-1 text-xs font-semibold text-red-600 hover:underline">Remove</button>
-                        </div>
-                      </div>
-                      <span className="shrink-0 font-semibold text-navy">{formatPrice(item.price * item.quantity)}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className={summaryOpen ? 'block' : 'hidden lg:block'}>{itemList}</div>
+              <div className={summaryOpen ? 'block' : 'hidden lg:block'}>{totalsBlock}</div>
 
-                <div className="space-y-4 border-t border-gray-200 pt-6">
-                  <div className="flex justify-between items-center">
-                    <span className="text-text">Subtotal</span>
-                    <span className="font-semibold text-navy">{formatPrice(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-text">Shipping</span>
-                    <span className="font-semibold text-navy">
-                      {shippingCharge === 0 ? <span className="text-green-600">FREE</span> : formatPrice(shippingCharge)}
-                    </span>
-                  </div>
-                  {subtotal >= freeShippingThreshold && subtotal > 0 && (
-                    <p className="text-sm font-medium text-green-600">✓ Free shipping applied!</p>
-                  )}
-                  <div className="flex justify-between items-center border-t border-gray-200 pt-4">
-                    <span className="text-lg font-bold text-navy">Total</span>
-                    <span className="text-2xl font-bold text-navy">{formatPrice(total)}</span>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="mt-6 w-full rounded-xl bg-[#25D366] py-4 text-base font-semibold text-white hover:bg-[#1eb856]"
-                  disabled={loading}
-                >
-                  {loading ? 'Saving enquiry…' : (
-                    <span className="inline-flex items-center gap-2">
-                      <WhatsAppIcon className="h-5 w-5" /> Send Order on WhatsApp
-                    </span>
-                  )}
-                </Button>
-                <p className="mt-3 text-center text-xs text-gray-500">
-                  Your enquiry is saved first, then WhatsApp opens with the details pre-filled. You confirm by pressing Send in WhatsApp.
-                </p>
-                {whatsappFallbackUrl && (
-                  <a href={whatsappFallbackUrl} target="_blank" rel="noreferrer" className="mt-2 block text-center text-xs font-semibold text-[#128C7E] hover:underline">
-                    WhatsApp did not open? Tap here
-                  </a>
-                )}
-
-                <div className="mt-6 space-y-2 text-xs text-text">
-                  <p>By sending this enquiry, you agree to our</p>
-                  <Link href="/terms-and-conditions" className="text-navy hover:text-gold">Terms & Conditions</Link>
-                  {' '}and{' '}
-                  <Link href="/privacy-policy" className="text-navy hover:text-gold">Privacy Policy</Link>
-                </div>
-
-                <div className="mt-6 rounded-xl bg-background-light p-4">
-                  <p className="mb-2 font-semibold text-navy">Estimated Delivery</p>
-                  <p className="text-text">5-7 business days</p>
-                </div>
+              <div className="mt-4 hidden lg:block">{submitButton}</div>
+              <p className="mt-3 hidden text-center text-xs text-gray-400 lg:block">
+                {paymentMethod === 'phonepe' ? 'Redirected to PhonePe\'s secure checkout.' : 'Pay by cash when your order is delivered.'}
+              </p>
+              <div className="mt-4 hidden rounded-xl bg-[#F5F7FA] p-3 text-xs text-gray-500 lg:block">
+                <p className="mb-1 flex items-center gap-1.5 font-semibold text-[#093875]"><Truck className="h-3.5 w-3.5 text-[#D4AF37]" /> Estimated delivery: 5–7 business days</p>
+                <p>By placing this order you agree to our <Link href="/terms-and-conditions" className="font-medium text-[#093875] hover:text-[#D4AF37]">Terms</Link> & <Link href="/privacy-policy" className="font-medium text-[#093875] hover:text-[#D4AF37]">Privacy Policy</Link>.</p>
               </div>
             </div>
           </div>
-        </form>
+        </div>
+      </form>
+
+      {/* Mobile sticky bottom bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-4px_20px_rgba(9,56,117,0.08)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-md items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Total payable</p>
+            <p className="truncate text-lg font-extrabold text-[#093875]">{formatPrice(total)}</p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => {
+              if (!formRef.current?.reportValidity()) { scrollToFirstInvalid(); return }
+              formRef.current?.requestSubmit()
+            }}
+            className="h-12 flex-1 rounded-xl bg-[#093875] text-base font-bold text-white hover:bg-[#0b4a9e]"
+            disabled={loading || (paymentMethod === 'phonepe' && !onlinePaymentsEnabled)}
+          >
+            {loading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : paymentMethod === 'phonepe' ? 'Proceed to Payment' : 'Confirm Order'}
+          </Button>
+        </div>
       </div>
     </div>
   )
