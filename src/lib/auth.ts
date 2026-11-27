@@ -93,17 +93,6 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
   pages: {
     signIn: '/admin/login',
     error: '/admin/login',
@@ -113,6 +102,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = user.role
+        console.log('[ADMIN_AUTH] JWT created — role:', token.role) // TEMP DIAGNOSTIC
       }
       return token
     },
@@ -121,6 +111,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.role = token.role as 'admin' | 'customer'
       }
+      console.log('[ADMIN_AUTH] Session resolved — role:', session.user?.role) // TEMP DIAGNOSTIC
       return session
     }
   },

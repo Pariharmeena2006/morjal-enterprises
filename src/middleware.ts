@@ -45,7 +45,10 @@ export default async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
   if (pathname === '/admin/login') return NextResponse.next()
 
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+  const isHttps = request.nextUrl.protocol === 'https:'
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET, secureCookie: isHttps })
+  // TEMP DIAGNOSTIC — remove after admin login issue is resolved
+  console.log(`[ADMIN_AUTH] Middleware ${pathname} — token role:`, token?.role ?? 'none')
   if (pathname.startsWith('/api/admin/') || pathname === '/api/upload') {
     if (token?.role === 'admin') return NextResponse.next()
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
