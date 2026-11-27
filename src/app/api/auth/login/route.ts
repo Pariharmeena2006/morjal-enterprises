@@ -58,7 +58,14 @@ export async function POST(request: NextRequest) {
     if (!admin) {
       return NextResponse.json({ error: 'Email or password is incorrect.' }, { status: 401 })
     }
-    if (!(await bcrypt.compare(password, admin.password))) {
+    let passwordValid = await bcrypt.compare(password, admin.password)
+    // Migrate legacy plaintext passwords to bcrypt on successful login
+    if (!passwordValid && !admin.password.startsWith('$2') && admin.password === password) {
+      passwordValid = true
+      const hashed = await bcrypt.hash(password, 12)
+      await prisma.admin.update({ where: { id: admin.id }, data: { password: hashed } }).catch(() => {})
+    }
+    if (!passwordValid) {
       return NextResponse.json({ error: 'Email or password is incorrect.' }, { status: 401 })
     }
     const secret = process.env.NEXTAUTH_SECRET

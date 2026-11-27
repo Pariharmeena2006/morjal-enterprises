@@ -41,10 +41,18 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          password,
-          admin.password
-        )
+        // Legacy plaintext passwords (e.g. set via Prisma Studio) are migrated
+        // to bcrypt on the next successful login.
+        let storedPassword = admin.password
+        let isPasswordValid = await bcrypt.compare(password, storedPassword)
+        if (!isPasswordValid && !storedPassword.startsWith('$2')) {
+          isPasswordValid = storedPassword === password
+          if (isPasswordValid) {
+            const hashed = await bcrypt.hash(password, 12)
+            await prisma.admin.update({ where: { id: admin.id }, data: { password: hashed } })
+              .catch(() => {})
+          }
+        }
 
         if (!isPasswordValid) {
           return null
